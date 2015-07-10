@@ -1,0 +1,18 @@
+# MET NO radar-derived precipitation colors 
+#
+# Taken from Diana
+
+ncolors = 10 
+
+# r       g       b 
+186      85      211
+211     160      221
+150     205      205
+175     238      238
+152     251      152
+  0     205        0
+ 34     139       34
+238     238        0
+255     140        0
+255       0        0
+139       0        0
