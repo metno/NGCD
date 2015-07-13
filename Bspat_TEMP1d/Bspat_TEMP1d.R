@@ -452,19 +452,29 @@ for (b in yo.h.pos) {
     J2<-J0+1
   }
 # DEBUG start      
-#      png(file=paste("pro_",VecS[b],".png",sep=""),width=1200,height=1200)
-#      plot(yo.b,VecZ.b,pch=19,col="black",cex=2.5,
-#           xlim=c(min(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T),
-#                  max(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T)))
-#      points(yb.set0[close2b],VecZ[close2b],col="gray",cex=1.8)
-#      points(yb.set1[close2b],VecZ[close2b],pch=19,col="blue",cex=1.8)
-#      points(yb.set2[close2b],VecZ[close2b],pch=19,col="red",cex=1.8)
-##      mtext(,side=3,cex=1.6)
-#      dev.off()
+      png(file=paste("pro_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
+      plot(yo.b,VecZ.b,pch=19,col="black",cex=2.5,
+           xlim=c(min(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T),
+                  max(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T)))
+      points(yb.set0[close2b],VecZ[close2b],col="gray",cex=1.8)
+      points(yb.set1[close2b],VecZ[close2b],pch=19,col="blue",cex=1.8)
+      points(yb.set2[close2b],VecZ[close2b],pch=19,col="red",cex=1.8)
+#      mtext(,side=3,cex=1.6)
+      dev.off()
+      png(file=paste("proH_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
+      plot(VecX[yo.h.pos],VecY[yo.h.pos],pch=19,col="black",cex=2.5)
+      points(VecX.b,VecY.b,pch=19,col="red",cex=2.5)
+#      mtext(,side=3,cex=1.6)
+      dev.off()
 # DEBUG stop      
 # Best background
-  aux<-order(c(J0,J1,J2))
-  best<-aux[1]-1
+  z.range<-max(VecZ.b)-min(VecZ.b)
+  if (z.range<=50) {
+    best<-0
+  } else {
+    aux<-order(c(J0,J1,J2))
+    best<-aux[1]-1
+  }
   if (best==0) {
     yb.set[,b]<-yb.set0[]
     yb.param[b,]<-c(yb.param0,0)
@@ -485,7 +495,7 @@ for (b in yo.h.pos) {
   if (best==1) uno.str<-"+1."
   if (best==2) due.str<-"+2."
   print(paste("@@",b.inc,". id pos Zmn/x DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
-                           round(min(VecZ.b),0),round(max(VecZ.b),0),
+                           round(min(VecZ.b),0),round(max(VecZ.b),0),paste("(",z.range,")",sep=""),
                            round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
                            round(J0,0),round(J1,0),round(J2,0),"/",Lsubsample.vec[b]))
   print(paste(zero.str,"alpha beta gamma:",round(yb.param0[6],6),round(yb.param0[8],6),round(yb.param0[4],4)))
@@ -663,8 +673,13 @@ while (TRUE) {
 #            dev.off()
 # DEBUG stop
 # Best background
-        aux<-order(c(J0,J1,J2))
-        best<-aux[1]-1
+        z.range<-max(VecZ.b)-min(VecZ.b)
+        if (z.range<=50) {
+          best<-0
+        } else {
+          aux<-order(c(J0,J1,J2))
+          best<-aux[1]-1
+        }
         if (best==0) {
           yb.set[,b]<-yb.set0[]
           yb.param[b,]<-c(yb.param0,0)
@@ -839,10 +854,10 @@ for (b in yb.h.pos) {
 #  print("tcross end")
 #  xbweights.set[,b.aux]<-0
 #  xbweights.set[xindx,b.aux]<-rowSums(K.b)
-  xindx1<-which(xbweights.set[,b.aux]>0.05)
+  xindx1<-which(xbweights.set[,b.aux]>0.0005)
   Lgrid.b1<-length(xindx1)
   print(paste(b.aux,"/",LBAKh," ",VecS[b]," ",Lgrid.b,"-->",Lgrid.b1,"/",Lgrid,"\n",sep=""))
-  rm(G.b,K.b)
+#  rm(G.b,K.b)
   if (yb.param[b,12]==0) {
     # 1.mean(z)[m];2.NA;3.mean(yo)[C];4.gamma[C/m];5.NA
     # 6. alpha[C/m];7.NA;8.Beta[C/m];9NA
@@ -894,6 +909,10 @@ for (b in yb.h.pos) {
        (yb.param[b,7]*(xgrid[xindx1[aux.bw]]-yb.param[b,10])+yb.param[b,9]*(ygrid[xindx1[aux.bw]]-yb.param[b,11]))*(h1-zgrid[xindx1[aux.bw]]) ) / yb.param[b,2]
     rm(aux.ab,aux.bl,aux.bw)
   }
+  png(file=paste("proX_",VecS[VecS.set.pos[b,1:Lsubsample.vec[b]]],"_",b.aux,".png",sep=""),width=1200,height=1200)
+  plot(xb.set[xindx1,b.aux],zgrid[xindx1],pch=19,col="black",cex=2.5)
+  points(yo[VecS.set.pos[b,1:Lsubsample.vec[b]]],VecZ[VecS.set.pos[b,1:Lsubsample.vec[b]]],pch=19,col="red",cex=2.5)
+  dev.off()
 }
 xbweights.norm<-xbweights.set/rowSums(xbweights.set)
 # DEBUG start

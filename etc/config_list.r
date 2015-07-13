@@ -50,7 +50,7 @@ config_list <- alist(
 
      list( pname="standard",
            opt = alist(
-                       main.path="/home/cristianl/projects/seNorge2",
+                       main.path="/home/cristianl/projects/NGCD",
                        main.path.output="/home/cristianl",
                        testmode=FALSE)
          )

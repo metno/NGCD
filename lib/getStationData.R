@@ -114,12 +114,12 @@ getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var)
   proj4.utm33<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
   #
   lat.mn<-50.
-  lat.mx<-82.
-  lon.mn<-0.
-  lon.mx<-40.
+  lat.mx<-72.
+  lon.mn<-2.
+  lon.mx<-34.
 #------------------------------------------------------------------------------
 # Read Station Information 
-  if (var=="TEMP1d") myurl <- paste("/disk1/NGCD_dataset/station_metadata/station_metadata_TG.txt")
+  if (var=="TEMP1d") myurl <- paste("/home/cristianl/NGCD_dataset/station_metadata/station_metadata_TG.txt")
   o.cont<-1
   while (o.cont<=10) {
     stataux<-NULL
@@ -151,7 +151,9 @@ getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var)
   y<-suppressWarnings(as.numeric(stataux$Y))
   x<-suppressWarnings(as.numeric(stataux$X))
   z<-suppressWarnings(as.numeric(stataux$HGHT))
-  indx<-which( !is.na(x) & !is.na(y) & !is.na(z) ) 
+  indx<-which( !is.na(x) & !is.na(y) & !is.na(z) & 
+               lon_dec>lon.mn & lon_dec<lon.mx & 
+               lat_dec>lat.mn & lat_dec<lat.mx)
 # second step: the location must be in Norway or on the border (lee than max.Km)
 #  intermediate step: transformation in Km-coordinates ETRS_LAEA, which has a transformation 
 #    less problematic than UTM33
@@ -537,7 +539,7 @@ getStationData<-function(var=NULL, from.dd, from.mm, from.yyyy, from.hh=NULL,
 # get station data from file 
 getStationData_NGCD<-function(var=NULL, yyyy, mm, dd, statlist )
 {
-  filename<-paste("/disk1/NGCD_dataset/data/TG/",yyyy,"/",mm,"/TGNGCD_",yyyy,mm,dd,".txt",sep="")
+  filename<-paste("/home/cristianl/NGCD_dataset/data/TG/",yyyy,"/",mm,"/TGNGCD_",yyyy,mm,dd,".txt",sep="")
 #  id,value,dqcflag
   try(o <- read.csv(filename, header = TRUE,  sep = ",",
                     stringsAsFactors = FALSE, fileEncoding = "ISO-8859-1",
