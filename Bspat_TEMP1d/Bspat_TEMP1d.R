@@ -84,9 +84,9 @@ if ( !(file.exists(main.path)) | !(file.exists(main.path.output)) )
   ext<-error_exit("Fatal Error: path not found")
 # geographical information
 main.path.geoinfo<-paste(main.path,"/geoinfo",sep="")
-filenamedem<-paste(main.path.geoinfo,"/fennodem_ETRS89_ETRS-LAEA.nc",sep="")
-if (!file.exists(paste(main.path.geoinfo,"/fennodem_ETRS89_ETRS-LAEA.nc",sep=""))) 
-  ext<-error_exit(paste("File not found:",main.path.geoinfo,"/fennodem_ETRS89_ETRS-LAEA.nc"))
+filenamedem<-paste(main.path.geoinfo,"/fennodem1000_ETRS89_mask.nc",sep="")
+if (!file.exists(filenamedem)) 
+  ext<-error_exit(paste("File not found:",filenamedem))
 # common libs and etcetera
 path2lib.com<-paste(main.path,"/lib",sep="")
 path2etc.com<-paste(main.path,"/etc",sep="")
@@ -972,11 +972,14 @@ while ((i*ndim)<Lgrid) {
   auxz<-abs(outer(zgrid[start:end],VecZ[yo.OKh.pos],FUN="-"))
   G<-exp(-0.5*(aux/Dh)**2.-0.5*(auxz/Dz)**2.)
   rm(aux,auxz)
-  K<-tcrossprod(G,InvD)
-  rm(G)
-  xa[start:end]<-xb[start:end]+tcrossprod(K,t(yo[yo.OKh.pos]-yb[yo.OKh.pos]))
+  Gmax.stn<-apply(G,MARGIN=2,FUN=max)
+  indx.sgnf<-which(Gmax.stn>0.0005)
+  K<-tcrossprod(G[,indx.sgnf],InvD[indx.sgnf,indx.sgnf])
+  rm(G,Gmax.stn)
+  d.sgnf<-yo[yo.OKh.pos][indx.sgnf]-yb[yo.OKh.pos][indx.sgnf]
+  xa[start:end]<-xb[start:end]+tcrossprod(K,t(d.sgnf))
   xidi[start:end]<-rowSums(K)
-  rm(K)
+  rm(K,indx.sgnf)
   i<-i+1
 }
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
