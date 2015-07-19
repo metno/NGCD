@@ -751,7 +751,7 @@ XYZinv_step1<-function(param,b_x,b_y,b_z,b_yo) {
   ABlim<-0.00008
   gamma.inflim<--0.012
   gamma.suplim<--0.0001
-  gamma.def<--0.006
+  gamma.def<--0.0065
   gamma.bl.inflim<--0.012
   gamma.bl.suplim<-0.010
   par2.inflim<-40
@@ -762,12 +762,17 @@ XYZinv_step1<-function(param,b_x,b_y,b_z,b_yo) {
   z.q80<-quantile(b_z,probs=0.8)
   dz.aux<-10
   if ((z.q80-z.q20)<10) dz.aux<-1
+  if ((z.q80-z.q20)<=1) dz.aux<-(z.q80-z.q20)/2
+  if (z.q80==z.q20) {
+    param.out<-c(rep(NA,11))
+    return(param.out)
+  }
 #
   if (param[1]>=z.q80) param[1]<-(z.q80-dz.aux)
   if (param[1]<=z.q20) param[1]<-(z.q20+dz.aux)
   if (param[2]<=par2.inflim | param[2]>=par2.suplim)  param[2]<-par2.def 
   if (param[4]<=gamma.inflim | param[4]>=gamma.suplim)  param[4]<-gamma.def 
-  if (param[5]<=gamma.inflim | param[5]>=gamma.suplim)  param[5]<-gamma.def
+  if (param[5]<=gamma.bl.inflim | param[5]>=gamma.bl.suplim)  param[5]<-gamma.def
   if (abs(param[6])>=ABlim)  param[6]<-0 
   if (abs(param[7])>=ABlim)  param[7]<-0 
   if (abs(param[8])>=ABlim)  param[8]<-0 
@@ -826,12 +831,79 @@ XYZinv_step1<-function(param,b_x,b_y,b_z,b_yo) {
 
 #==============================================================================
 #+ Background 0: NOT allowing for inversion in the vertical profile
+XYnoinv_step0<-function(b_x,b_y,b_z,b_yo) {
+# Alpha and Beta limit C/m -> 0.00008 C/m = 8 C/100Km
+  ABlim<-0.00008
+  gamma.def<--0.0065
+# 1.mean(z)[m];2.NA;3.mean(yo)[C];4.gamma[C/m];5.NA
+# 6. alpha[C/m];7.NA;8.Beta[C/m];9NA
+  param.out<-vector(mode="numeric",length=11)
+  param.out[]<-NA
+#
+  yb<-vector(length=length(b_yo),mode="numeric")
+  mx<-mean(b_x)
+  my<-mean(b_y)
+#  mz<-mean(b_z)
+  myo<-mean(b_yo)
+  devx<-b_x-mx
+  devy<-b_y-my
+#  devz<-b_z-mz
+  devyo<-b_yo-myo-gamma.def*b_z
+# background NOT allowing for inversion in the vertical profile
+  ide<-matrix(ncol=2,nrow=2,data=0.)
+  ide[row(ide)==col(ide)]<-1
+# Ax=b
+  res.noinv<-NA
+  x.noinv<-vector(length=2,mode="numeric")
+  x.noinv<-NA
+  A<-matrix(ncol=2,nrow=2,data=0.)
+  b<-vector(length=2)
+  A[1,1]<-sum(devx**2.)
+  A[1,2]<-sum(devx*devy)
+#  A[1,3]<-sum(devx*b_z)
+  A[2,1]<-A[1,2]
+  A[2,2]<-sum(devy**2.)
+#  A[2,3]<-sum(devy*b_z)
+#  A[3,1]<-A[1,3]
+#  A[3,2]<-A[2,3]
+#  A[3,3]<-sum(b_z**2.)
+  A.det<-A[1,1]*A[2,2]-A[1,2]*A[2,1]
+  if (abs(A.det)<(1e-08)) {
+    param.out[3]<-myo
+    param.out[4]<-gamma.def
+    param.out[6]<-0.
+    param.out[8]<-0.
+    param.out[10]<-mx
+    param.out[11]<-my
+    return(param.out)
+  }
+  b[1]<-sum(devyo*devx)
+  b[2]<-sum(devyo*devy)
+#  b[3]<-sum(devyo*b_z)
+  InvA<-solve(A,ide)
+  x.noinv<-InvA %*% b
+#  print(paste("mnZ mxZ alpha beta gamma:",min(b_z),max(b_z),
+#              round(x.noinv[1],6),round(x.noinv[2],6),round(x.noinv[3],6)))
+  if (x.noinv[1]<(-ABlim)) x.noinv[1]<--ABlim
+  if (x.noinv[1]>ABlim) x.noinv[1]<-ABlim
+  if (x.noinv[2]<(-ABlim)) x.noinv[2]<--ABlim
+  if (x.noinv[2]>ABlim) x.noinv[2]<-ABlim
+  param.out[3]<-myo
+  param.out[4]<-gamma.def
+  param.out[6]<-x.noinv[1]
+  param.out[8]<-x.noinv[2]
+  param.out[10]<-mx
+  param.out[11]<-my
+  return(param.out)
+}
+
+#+ Background 0: NOT allowing for inversion in the vertical profile
 XYZnoinv_step0<-function(b_x,b_y,b_z,b_yo) {
 # Alpha and Beta limit C/m -> 0.00008 C/m = 8 C/100Km
   ABlim<-0.00008
   gamma.inflim<--0.012
   gamma.suplim<--0.0001
-  gamma.def<--0.006
+  gamma.def<--0.0065
 # 1.mean(z)[m];2.NA;3.mean(yo)[C];4.gamma[C/m];5.NA
 # 6. alpha[C/m];7.NA;8.Beta[C/m];9NA
   param.out<-vector(mode="numeric",length=11)
@@ -868,12 +940,13 @@ XYZnoinv_step0<-function(b_x,b_y,b_z,b_yo) {
          A[1,2]*(A[2,1]*A[3,3]-A[2,3]*A[3,1])+
          A[1,3]*(A[2,1]*A[3,2]-A[2,2]*A[3,1])
   if (abs(A.det)<(1e-08)) {
-    param.out[3]<-myo
-    param.out[4]<-gamma.def
-    param.out[6]<-0.
-    param.out[8]<-0.
-    param.out[10]<-mx
-    param.out[11]<-my
+#    param.out[3]<-myo
+#    param.out[4]<-gamma.def
+#    param.out[6]<-0.
+#    param.out[8]<-0.
+#    param.out[10]<-mx
+#    param.out[11]<-my
+    param.out<-XYnoinv_step0(b_x,b_y,b_z,b_yo)
     return(param.out)
   }
   b[1]<-sum(devyo*devx)
@@ -887,7 +960,10 @@ XYZnoinv_step0<-function(b_x,b_y,b_z,b_yo) {
   if (x.noinv[1]>ABlim) x.noinv[1]<-ABlim
   if (x.noinv[2]<(-ABlim)) x.noinv[2]<--ABlim
   if (x.noinv[2]>ABlim) x.noinv[2]<-ABlim
-  if (x.noinv[3]<gamma.inflim | x.noinv[3]>=gamma.suplim)  x.noinv[3]<-gamma.def 
+  if (x.noinv[3]<gamma.inflim | x.noinv[3]>=gamma.suplim) {
+    param.out<-XYnoinv_step0(b_x,b_y,b_z,b_yo)
+    return(param.out)
+  }
   param.out[3]<-myo
   param.out[4]<-x.noinv[3]
   param.out[6]<-x.noinv[1]

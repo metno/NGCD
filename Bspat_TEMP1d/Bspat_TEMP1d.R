@@ -44,12 +44,20 @@ Dh<-60
 Dz<-600
 T2<-15
 # Background - parameters
+cutoff.par<-4
+z.range.min<-50
+nstat.min<-5
+nstat.min.inv<-20
 Dh.b<-70.
 eps2.b<-0.5
 Lsubsample<-50
 Lsubsample.max<-50
-Lsubsample.DHmax<-200
+#Lsubsample.DHmax<-200
+Lsubsample.DHmax<-150
 Lsubsample.vec<-vector()
+#
+weight.min.b<-0.00005
+weight.min.a<-0.0005
 #
 print("ANALYSIS and DQC parameters")
 print(paste("EPS2 Dh[Km] Dz[m] > ", round(eps2,3),
@@ -331,8 +339,9 @@ yb.h.pos<-vector()
 b.inc<-0
 for (b in yo.h.pos) {
   if (b.inc>0) {
-    finoa<-as.integer(Lsubsample.max*1/4)
-    if (VecY[b]<7750000 & VecZ[b]<800) finoa<-as.integer(Lsubsample.max*2/4)
+#    finoa<-as.integer(Lsubsample.max*1/4)
+#    if (VecY[b]<7750000 & VecZ[b]<800) finoa<-as.integer(Lsubsample.max*2/4)
+    finoa<-as.integer(Lsubsample.max*1/5)
     if (VecY[b]<7100000 & VecZ[b]<800) finoa<-as.integer(Lsubsample.max*3/4)
     if (VecS[b]%in%VecS.set[yb.h.pos[1:b.inc],2:finoa]) next
   }
@@ -343,7 +352,7 @@ for (b in yo.h.pos) {
   aux<-Lsubsample.max
   if (Disth[b,close2b.au1[Lsubsample.max]]>Lsubsample.DHmax) 
     aux<-max(which(Disth[b,close2b.au1]<=Lsubsample.DHmax))
-  if (aux<10) next
+  if (aux<nstat.min) next
   Lsubsample.vec[b]<-aux
   close2b<-close2b.au1[1:Lsubsample.vec[b]]
   b.inc<-b.inc+1
@@ -363,6 +372,10 @@ for (b in yo.h.pos) {
   VecS.set[b,1:Lsubsample.vec[b]]<-VecS[close2b]
   VecS.set.pos[b,1:Lsubsample.vec[b]]<-close2b
   yo.b<-yo[close2b]
+#
+  z.range<-max(VecZ.b)-min(VecZ.b)
+  z.range.90<-round((quantile(VecZ.b,probs=0.9)-quantile(VecZ.b,probs=0.1)),0)
+  flag.only0<-(z.range.90<=z.range.min | Lsubsample.vec[b]<nstat.min.inv)
 # NOTE: this is D.b! not D...
   ide.b<-matrix(data=0,ncol=Lsubsample.vec[b],nrow=Lsubsample.vec[b])
   ide.b[row(ide.b)==col(ide.b)]=1
@@ -452,24 +465,23 @@ for (b in yo.h.pos) {
     J2<-J0+1
   }
 # DEBUG start      
-      png(file=paste("pro_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
-      plot(yo.b,VecZ.b,pch=19,col="black",cex=2.5,
-           xlim=c(min(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T),
-                  max(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T)))
-      points(yb.set0[close2b],VecZ[close2b],col="gray",cex=1.8)
-      points(yb.set1[close2b],VecZ[close2b],pch=19,col="blue",cex=1.8)
-      points(yb.set2[close2b],VecZ[close2b],pch=19,col="red",cex=1.8)
-#      mtext(,side=3,cex=1.6)
-      dev.off()
-      png(file=paste("proH_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
-      plot(VecX[yo.h.pos],VecY[yo.h.pos],pch=19,col="black",cex=2.5)
-      points(VecX.b,VecY.b,pch=19,col="red",cex=2.5)
-#      mtext(,side=3,cex=1.6)
-      dev.off()
+#      png(file=paste("pro_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
+#      plot(yo.b,VecZ.b,pch=19,col="black",cex=2.5,
+#           xlim=c(min(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T),
+#                  max(c(yo.b,yb.set0[close2b],yb.set1[close2b],yb.set2[close2b]),na.rm=T)))
+#      points(yb.set0[close2b],VecZ[close2b],col="gray",cex=1.8)
+#      points(yb.set1[close2b],VecZ[close2b],pch=19,col="blue",cex=1.8)
+#      points(yb.set2[close2b],VecZ[close2b],pch=19,col="red",cex=1.8)
+##      mtext(,side=3,cex=1.6)
+#      dev.off()
+#      png(file=paste("proH_",VecS[b],"_",b.inc,".png",sep=""),width=1200,height=1200)
+#      plot(VecX[yo.h.pos],VecY[yo.h.pos],pch=19,col="black",cex=2.5)
+#      points(VecX.b,VecY.b,pch=19,col="red",cex=2.5)
+##      mtext(,side=3,cex=1.6)
+#      dev.off()
 # DEBUG stop      
 # Best background
-  z.range<-max(VecZ.b)-min(VecZ.b)
-  if (z.range<=50) {
+  if (flag.only0) {
     best<-0
   } else {
     aux<-order(c(J0,J1,J2))
@@ -494,8 +506,10 @@ for (b in yo.h.pos) {
   if (best==0) zero.str<-"+0."
   if (best==1) uno.str<-"+1."
   if (best==2) due.str<-"+2."
-  print(paste("@@",b.inc,". id pos Zmn/x DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
-                           round(min(VecZ.b),0),round(max(VecZ.b),0),paste("(",z.range,")",sep=""),
+  print(paste("@@",b.inc,". id pos Zmn/x (Zrange) [Z.q90-Z.q10] DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
+                           round(min(VecZ.b),0),round(max(VecZ.b),0),
+                           paste("(",z.range,")",sep=""),
+                           paste("[",z.range.90,"]",sep=""),
                            round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
                            round(J0,0),round(J1,0),round(J2,0),"/",Lsubsample.vec[b]))
   print(paste(zero.str,"alpha beta gamma:",round(yb.param0[6],6),round(yb.param0[8],6),round(yb.param0[4],4)))
@@ -524,7 +538,7 @@ for (b in yo.h.pos) {
   rm(K.b,W.b)
 } # end cycle LOBSt
 LBAKh<-b.inc
-print(paste("# stations used in background elaborations=",LBAKh))
+print(paste("# stations used in background elaborations (as reference station)=",LBAKh))
 # At this point I've this 5 outputs
 # 1. yb.set<-matrix(data=NA,ncol=btimes,nrow=LOBSt)
 # 2. ybweights.set<-matrix(data=NA,ncol=btimes,nrow=LOBSt)
@@ -567,6 +581,10 @@ while (TRUE) {
         VecS.set[b,1:Lsubsample.vec[b]]<-VecS[close2b]
         VecS.set.pos[b,1:Lsubsample.vec[b]]<-close2b
         yo.b<-yo[close2b]
+#
+        z.range<-max(VecZ.b)-min(VecZ.b)
+        z.range.90<-round((quantile(VecZ.b,probs=0.9)-quantile(VecZ.b,probs=0.1)),0)
+        flag.only0<-(z.range.90<=z.range.min | Lsubsample.vec[b]<nstat.min.inv)
 # NOTE: this is D.b! not D...
         ide.b<-matrix(data=0,ncol=Lsubsample.vec[b],nrow=Lsubsample.vec[b])
         ide.b[row(ide.b)==col(ide.b)]<-1
@@ -673,8 +691,7 @@ while (TRUE) {
 #            dev.off()
 # DEBUG stop
 # Best background
-        z.range<-max(VecZ.b)-min(VecZ.b)
-        if (z.range<=50) {
+        if (flag.only0) {
           best<-0
         } else {
           aux<-order(c(J0,J1,J2))
@@ -699,8 +716,10 @@ while (TRUE) {
         if (best==0) zero.str<-"*0."
         if (best==1) uno.str<-"*1."
         if (best==2) due.str<-"*2."
-        print(paste("@@",isct,". id pos Zmn/x DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
+        print(paste("@@",isct,". id pos Zmn/x (Zrange) [Z.q90-Z.q10] DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
                                  round(min(VecZ.b),0),round(max(VecZ.b),0),
+                                 paste("(",z.range,")",sep=""),
+                                 paste("[",z.range.90,"]",sep=""),
                                  round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
                                  round(J0,0),round(J1,0),round(J2,0),"/",Lsubsample.vec[b]))
         print(paste(zero.str,"alpha beta gamma:",round(yb.param0[6],6),round(yb.param0[8],6),round(yb.param0[4],4)))
@@ -804,8 +823,10 @@ print("++ Grid - Background elaborations\n")
 print("#/tot stnid #grid.points/#grid.points.tot")
 for (b in yb.h.pos) {
   b.aux<-b.aux+1
-  xindx<-which( (xgrid-min(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-3*Dh.b*1000) & (xgrid-max(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<(3*Dh.b*1000) &
-                (ygrid-min(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-3*Dh.b*1000) & (ygrid-max(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<(3*Dh.b*1000) )
+  xindx<-which( (xgrid-min(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-cutoff.par*Dh.b*1000) & 
+                (xgrid-max(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<( cutoff.par*Dh.b*1000) &
+                (ygrid-min(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-cutoff.par*Dh.b*1000) & 
+                (ygrid-max(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<( cutoff.par*Dh.b*1000) )
   Lgrid.b<-length(xindx)
   if (Lgrid.b==0) {
     xb.set[,b.aux]<-0
@@ -814,7 +835,6 @@ for (b in yb.h.pos) {
   }
   ide.b<-matrix(data=0,ncol=Lsubsample.vec[b],nrow=Lsubsample.vec[b])
   ide.b[row(ide.b)==col(ide.b)]<-1
-  print("Inv")
   InvD.b<-solve(D.b[VecS.set.pos[b,1:Lsubsample.vec[b]],VecS.set.pos[b,1:Lsubsample.vec[b]]],ide.b)
 #
   xbweights.set[,b.aux]<-0
@@ -827,7 +847,7 @@ for (b in yb.h.pos) {
       end<-Lgrid.b
     }
     ndimaux<-end-start+1
-    print(paste(round(i),round(start,0),round(end,0),round(Lgrid,0)))
+#    print(paste(round(i),round(start,0),round(end,0),round(Lgrid,0)))
     aux<-matrix(ncol=Lsubsample.vec[b],nrow=ndimaux,data=0.)
     G.b<-matrix(ncol=Lsubsample.vec[b],nrow=ndimaux,data=0.)
     aux<-(outer(ygrid[xindx[start:end]],VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2. +
@@ -841,7 +861,6 @@ for (b in yb.h.pos) {
     i<-i+1
   }
 ## G matrix
-#  print("G")
 #  Disth.b<-matrix(ncol=Lsubsample.vec[b],nrow=Lgrid.b,data=0.)
 #  G.b<-matrix(ncol=Lsubsample.vec[b],nrow=Lgrid.b,data=0.)
 #  Disth.b<-(outer(ygrid[xindx],VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2.+
@@ -849,12 +868,10 @@ for (b in yb.h.pos) {
 #  G.b<-exp(-0.5*(Disth.b/Dh.b)**2.)
 #  rm(Disth.b)
 ##  compute analysis/idi over grid 
-#  print("tcross")
 #  K.b<-tcrossprod(G.b,InvD.b)
-#  print("tcross end")
 #  xbweights.set[,b.aux]<-0
 #  xbweights.set[xindx,b.aux]<-rowSums(K.b)
-  xindx1<-which(xbweights.set[,b.aux]>0.0005)
+  xindx1<-which(xbweights.set[,b.aux]>weight.min.b)
   Lgrid.b1<-length(xindx1)
   print(paste(b.aux,"/",LBAKh," ",VecS[b]," ",Lgrid.b,"-->",Lgrid.b1,"/",Lgrid,"\n",sep=""))
 #  rm(G.b,K.b)
@@ -909,10 +926,10 @@ for (b in yb.h.pos) {
        (yb.param[b,7]*(xgrid[xindx1[aux.bw]]-yb.param[b,10])+yb.param[b,9]*(ygrid[xindx1[aux.bw]]-yb.param[b,11]))*(h1-zgrid[xindx1[aux.bw]]) ) / yb.param[b,2]
     rm(aux.ab,aux.bl,aux.bw)
   }
-  png(file=paste("proX_",VecS[VecS.set.pos[b,1:Lsubsample.vec[b]]],"_",b.aux,".png",sep=""),width=1200,height=1200)
-  plot(xb.set[xindx1,b.aux],zgrid[xindx1],pch=19,col="black",cex=2.5)
-  points(yo[VecS.set.pos[b,1:Lsubsample.vec[b]]],VecZ[VecS.set.pos[b,1:Lsubsample.vec[b]]],pch=19,col="red",cex=2.5)
-  dev.off()
+#  png(file=paste("proX_",VecS[VecS.set.pos[b,1:Lsubsample.vec[b]]],"_",b.aux,".png",sep=""),width=1200,height=1200)
+#  plot(xb.set[xindx1,b.aux],zgrid[xindx1],pch=19,col="black",cex=2.5)
+#  points(yo[VecS.set.pos[b,1:Lsubsample.vec[b]]],VecZ[VecS.set.pos[b,1:Lsubsample.vec[b]]],pch=19,col="red",cex=2.5)
+#  dev.off()
 }
 xbweights.norm<-xbweights.set/rowSums(xbweights.set)
 # DEBUG start
@@ -972,14 +989,20 @@ while ((i*ndim)<Lgrid) {
   auxz<-abs(outer(zgrid[start:end],VecZ[yo.OKh.pos],FUN="-"))
   G<-exp(-0.5*(aux/Dh)**2.-0.5*(auxz/Dz)**2.)
   rm(aux,auxz)
+#
   Gmax.stn<-apply(G,MARGIN=2,FUN=max)
-  indx.sgnf<-which(Gmax.stn>0.0005)
+  indx.sgnf<-which(Gmax.stn>weight.min.a)
   K<-tcrossprod(G[,indx.sgnf],InvD[indx.sgnf,indx.sgnf])
   rm(G,Gmax.stn)
   d.sgnf<-yo[yo.OKh.pos][indx.sgnf]-yb[yo.OKh.pos][indx.sgnf]
   xa[start:end]<-xb[start:end]+tcrossprod(K,t(d.sgnf))
+#
+#  K<-tcrossprod(G,InvD)
+#  rm(G)
+#  xa[start:end]<-xb[start:end]+tcrossprod(K,t(yo[yo.OKh.pos]-yb[yo.OKh.pos]))
   xidi[start:end]<-rowSums(K)
   rm(K,indx.sgnf)
+#  rm(K)
   i<-i+1
 }
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

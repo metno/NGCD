@@ -113,10 +113,10 @@ getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var)
   proj4.ETRS_LAEA<-"+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
   proj4.utm33<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
   #
-  lat.mn<-50.
+  lat.mn<-49.5
   lat.mx<-72.
   lon.mn<-2.
-  lon.mx<-34.
+  lon.mx<-34.5
 #------------------------------------------------------------------------------
 # Read Station Information 
   if (var=="TEMP1d") myurl <- paste("/home/cristianl/NGCD_dataset/station_metadata/station_metadata_TG.txt")
