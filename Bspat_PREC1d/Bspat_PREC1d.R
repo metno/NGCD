@@ -306,8 +306,8 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   xa.sel[1:ng]<-out$xa[1:ng]
   xidi.sel[1:ng]<-out$xidi[1:ng]
   rm(out)
-  print("cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1)")
-  print(cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1))
+#  print("cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1)")
+#  print(cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1))
   return(list(xa=xa.sel,xidi=xidi.sel))
 }
 #-------------------------------------------------------------------
