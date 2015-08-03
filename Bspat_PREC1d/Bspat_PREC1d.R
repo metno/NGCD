@@ -1627,6 +1627,7 @@ while (L.yo.ok>0) {
   xb.FG<-vector(mode="numeric",length=Lgrid.FG)
   xa.CG<-vector(mode="numeric",length=Lgrid.CG)
   xb.CG<-vector(mode="numeric",length=Lgrid.CG)
+  xidi.CG<-vector(mode="numeric",length=Lgrid.CG)
   xidi.FG<-vector(mode="numeric",length=Lgrid.FG)
   xtmp.FG<-vector(mode="numeric",length=Lgrid.FG)
 # Y vectors (station locations)
@@ -1682,6 +1683,7 @@ while (L.yo.ok>0) {
   xa.FG[]<-NA
   xb.FG[]<-NA
   xidi.FG[]<-0
+  xidi.CG[]<-0
   xtmp.FG[]<-0
   xa.CG[]<-NA
   xb.CG[]<-NA
