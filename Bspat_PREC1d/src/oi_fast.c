@@ -15,11 +15,14 @@ void oi_fast(int *ng, int *no,
              double *xa, double *xidi) {
   int ngv = ng[0];
   int nov = no[0];
+  double xinfv = xinf[0];
+  double Dhv = Dh[0];
+  double Dzv = Dz[0];
   int i,j;
   double g,Dh2,Dz2,hd2,vd2;
 
-  Dh2=Dh[0]*Dh[0];
-  Dz2=Dz[0]*Dz[0];
+  Dh2=Dhv*Dhv;
+  Dz2=Dzv*Dzv;
   for (i=0;i<ngv;i++) {
     xa[i]=xb[i];
     xidi[i]=0;
@@ -35,8 +38,8 @@ void oi_fast(int *ng, int *no,
   }
   for (i=0;i<ngv;i++) {
     xa[i]=xa[i]*smooth[i];
-    if (xa[i]<xinf[0] && smooth[i]>=0.9) xa[i]=xinf[0]; 
-    if (xa[i]<0) xa[i]=0.; 
+    if (xa[i]<xinfv && smooth[i]>=0.9) xa[i]=xinfv; 
+    if (xa[i]<0) xa[i]=0.;
   }
 
   return;

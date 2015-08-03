@@ -256,10 +256,10 @@ CG2FG_cgweights<-function(cg2fg,x.FG,x.CG=x.eve.CG.1,na.value=na1) {
 #}
 
 OI_fast<-function(yo.sel,yb.sel,xb.sel,
-                  xg,yg,zg,
-                  xo,yo,zo,
-                  xsmooth,xinf,
-                  Dh,Dz) {
+                  xgrid.sel,ygrid.sel,zgrid.sel,
+                  VecX.sel,VecY.sel,VecZ.sel,
+                  x.bwgt.sel,xinf,
+                  Dh.cur,Dz.cur) {
   no<-length(yo.sel)
   ng<-length(xb.sel)
   xa.sel<-vector(mode="numeric",length=ng)
@@ -269,14 +269,16 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   xa.sel[]<-0
   xidi.sel[]<-0
   d<-yo.sel-yb.sel
+  t.d<-t(d)
+  a<-tcrossprod(InvD,t.d)
 #  print(InvD[1,1:10])
 #  print(d[1:10])
   out<-.C("oi_first",no=as.integer(no), 
                      innov=as.double(d),
                      SRinv=as.numeric(InvD),
                      vec=as.double(vec), vec1=as.double(vec1) )
-  vec[]<-as.numeric(out$vec[])
-  vec1[]<-as.numeric(out$vec1[])
+  vec[1:no]<-out$vec[1:no]
+  vec1[1:no]<-out$vec1[1:no]
   rm(out)
 #  print(any(is.na(xg)))
 #  print(any(is.na(yg)))
@@ -294,15 +296,19 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
 #  print(vec)
 #  print(vec1)
   out<-.C("oi_fast",ng=as.integer(ng),no=as.integer(no),
-                    xg=as.double(xg),yg=as.double(yg),zg=as.double(zg),
-                    xo=as.double(xo),yo=as.double(yo),zo=as.double(zo),
-                    Dh=as.double(Dh),Dz=as.double(Dz),
+                    xg=as.double(xgrid.sel),yg=as.double(ygrid.sel),zg=as.double(zgrid.sel),
+                    xo=as.double(VecX.sel),yo=as.double(VecY.sel),zo=as.double(VecZ.sel),
+                    Dh=as.double(Dh.cur),Dz=as.double(Dz.cur),
                     xb=as.double(xb.sel),
                     vec=as.double(vec),vec1=as.double(vec1),
-                    smooth=as.double(xsmooth),xinf=as.double(xinf),
+                    smooth=as.double(x.bwgt.sel),xinf=as.double(xinf),
                     xa=as.double(xa.sel),xidi=as.double(xidi.sel) )
-#  print(out$xa)
-  return(list(xa=as.numeric(out$xa[]),xidi=as.numeric(out$xidi[])))
+  xa.sel[1:ng]<-out$xa[1:ng]
+  xidi.sel[1:ng]<-out$xidi[1:ng]
+  rm(out)
+  print("cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1)")
+  print(cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1))
+  return(list(xa=xa.sel,xidi=xidi.sel))
 }
 #-------------------------------------------------------------------
 # [] Setup parameters
@@ -1556,6 +1562,8 @@ while (L.yo.ok>0) {
 #  rm(r.lngb.FG,x.lngb.FG,r.aux.CG,r.CGtoFG,r.clu.FG)
 #  rm(f.lab,f.lab.val,f.lab.n,x.CGtoFG)
 # debug
+  print("cbind(y.bwgt.CG,y.bwgt.FG)")
+  print(cbind(y.bwgt.CG,y.bwgt.FG))
 #  r<-r.orog.FG
 #  r[mask.FG]<-x.pnop.FG
 #  rnc<-writeRaster(r,filename=paste("xpnopfg.nc",sep=""),format="CDF",overwrite=TRUE)
@@ -1986,8 +1994,8 @@ while (L.yo.ok>0) {
       } # end cycle on vertical decorrelation lenght scales
       print(paste("Dh=",Dh.test,"Km ==> Dz=",Dz.choice,"m"))
       rm(D.test.part,D.test,S.test,InvD.test,W.test)
-      t.d<-t(yo.n[yindx]-yb[yindx])
-      uno<-t(rep(1,length(yo.n[yindx])))
+#      t.d<-t(yo.n[yindx]-yb[yindx])
+#      uno<-t(rep(1,length(yo.n[yindx])))
 # optimization: if innovation is very close to zero go to next iteration
 #      if ( !(any(abs(t.d)>0.01)) & n.iter!=n.Dh.seq) next
 #     + CrossValidated-analysis 
@@ -2035,30 +2043,33 @@ while (L.yo.ok>0) {
         print("Analysis on CG")
         oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
                     xb.sel=xb.CG[xindx.eve.CG],
-                    xg=xgrid[xindx.eve.CG],yg=ygrid[xindx.eve.CG],zg=zgrid[xindx.eve.CG],
-                    xo=VecX[yindx],yo=VecY[yindx],zo=VecZ[yindx],
-                    xsmooth=x.bwgt.CG[xindx.eve.CG],xinf=rr.inf,
-                    Dh=Dh.test,Dz=Dz.choice) 
+                    xgrid.sel=xgrid.CG[xindx.eve.CG],ygrid.sel=ygrid.CG[xindx.eve.CG],zgrid.sel=zgrid.CG[xindx.eve.CG],
+                    VecX.sel=VecX[yindx],VecY.sel=VecY[yindx],VecZ.sel=VecZ[yindx],
+                    x.bwgt.sel=x.bwgt.CG[xindx.eve.CG],xinf=rr.inf,
+                    Dh.cur=Dh.test,Dz.cur=Dz.choice) 
         xa.CG[xindx.eve.CG]<-oi$xa
         xidi.CG[xindx.eve.CG]<-xidi.CG[xindx.eve.CG]+oi$xidi
-#        print("xa.CG[xindx.eve.CG]")
-#        print(xa.CG[xindx.eve.CG])
+        print("xa.CG[xindx.eve.CG]")
+        print(xa.CG[xindx.eve.CG])
         rm(oi)
-#        q()
         # next background is the current analysis, only a little bit smoothed
         # smoothing is for realistic border effects
         xb.CG[]<-NA
         xb.CG[xindx.eve.CG]<-xa.CG[xindx.eve.CG]
         print("end Analysis on CG")
+#r<-r.orog.CG
+#r[]<-NA
+#r[mask.CG]<-xb.CG
+#rnc<-writeRaster(r,filename=paste("r.nc",sep=""),format="CDF",overwrite=TRUE)
       } else { 
 #     + Analysis on FG
         print("Analysis on FG")
         oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
                     xb.sel=xb.FG[xindx.eve.FG],
-                    xg=xgrid[xindx.eve.FG],yg=ygrid[xindx.eve.FG],zg=zgrid[xindx.eve.FG],
-                    xo=VecX[yindx],yo=VecY[yindx],zo=VecZ[yindx],
-                    xsmooth=x.bwgt.FG[xindx.eve.FG],xinf=rr.inf,
-                    Dh=Dh.test,Dz=Dz.choice) 
+                    xgrid.sel=xgrid[xindx.eve.FG],ygrid.sel=ygrid[xindx.eve.FG],zgrid.sel=zgrid[xindx.eve.FG],
+                    VecX.sel=VecX[yindx],VecY.sel=VecY[yindx],VecZ.sel=VecZ[yindx],
+                    x.bwgt.sel=x.bwgt.FG[xindx.eve.FG],xinf=rr.inf,
+                    Dh.cur=Dh.test,Dz.cur=Dz.choice) 
         xa.FG[xindx.eve.FG]<-oi$xa
         xidi.FG[xindx.eve.FG]<-xidi.FG[xindx.eve.FG]+oi$xidi
         rm(oi)
