@@ -1628,7 +1628,7 @@ while (L.yo.ok>0) {
   xa.CG<-vector(mode="numeric",length=Lgrid.CG)
   xb.CG<-vector(mode="numeric",length=Lgrid.CG)
   xidi.FG<-vector(mode="numeric",length=Lgrid.FG)
-  xidi.tmp.FG<-vector(mode="numeric",length=Lgrid.FG)
+  xtmp.FG<-vector(mode="numeric",length=Lgrid.FG)
 # Y vectors (station locations)
   ya<-vector(mode="numeric",length=L.y.tot)
   yb<-vector(mode="numeric",length=L.y.tot)
@@ -1682,7 +1682,7 @@ while (L.yo.ok>0) {
   xa.FG[]<-NA
   xb.FG[]<-NA
   xidi.FG[]<-0
-  xidi.tmp.FG[]<-0
+  xtmp.FG[]<-0
   xa.CG[]<-NA
   xb.CG[]<-NA
   yo.n[]<-NA
@@ -1768,25 +1768,11 @@ while (L.yo.ok>0) {
     # initialization
     r.xb.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
                      ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
-    r.xidi.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                       ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
-    r.aux.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                      ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
     r.xb.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
                      ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    r.xidi.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                       ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                      ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    xb.CG<-vector(mode="numeric",length=Lgrid.CG)
-    xidi.CG<-vector(mode="numeric",length=Lgrid.CG)
     #
     r.xb.CG[]<-NA
-    r.xidi.CG[]<-NA
-    r.aux.CG[]<-NA
     r.xb.FG[]<-NA
-    r.xidi.FG[]<-NA
-    r.aux.FG[]<-NA
     xb.CG[]<-NA
     xidi.CG[]<-0
     # identify event extension on the CG grid
@@ -1909,27 +1895,30 @@ while (L.yo.ok>0) {
         if (flag.CGtoFG) {
           flag.CGtoFG<-F
           #
+          r.xb.CG[mask.CG]<-xb.CG
           xb.CG[is.na(xb.CG)]<-0
           xidi.CG[is.na(xidi.CG)]<-0
           #
-          xb.FG[]<-na1
-          xb.FG[xindx.eve.FG]<-1
-          xb.FG<-CG2FG_bilinear(cg2fg,x.FG=xb.FG,x.CG=xb.CG,na.value=na1)
+          xtmp.FG[]<-na1
+          xtmp.FG[xindx.eve.FG]<-1
+          xtmp.FG<-CG2FG_bilinear(cg2fg,x.FG=xtmp.FG,x.CG=xb.CG,na.value=na1)
+          xb.FG[]<-NA
+          xb.FG[xindx.eve.FG]<-xtmp.FG[xindx.eve.FG]
+          r.xb.FG[]<-NA
           r.xb.FG[mask.FG]<-xb.FG
           #
-          xidi.tmp.FG[]<-na1
-          xidi.tmp.FG[xindx.eve.FG]<-1
-          xidi.tmp.FG<-CG2FG_bilinear(cg2fg,x.FG=xidi.FG,x.CG=xidi.CG,na.value=na1)
-          r.xidi.FG[mask.FG]<-xidi.FG
-          xidi.FG[xindx.eve.FG]<-xidi.tmp.FG[xindx.eve.FG]
+          xtmp.FG[]<-na1
+          xtmp.FG[xindx.eve.FG]<-1
+          xtmp.FG<-CG2FG_bilinear(cg2fg,x.FG=xtmp.FG,x.CG=xidi.CG,na.value=na1)
+          xidi.FG[xindx.eve.FG]<-xtmp.FG[xindx.eve.FG]
           #
           yb1.tmp[yindx]<-extract(r.xb.CG,cbind(VecX[yindx],VecY[yindx]))
-          if (n.ya.eve[n]>0) yb1.tmp[ya.indx]<-extract(r.xb.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
           yb2.tmp[yindx]<-extract(r.xb.FG,cbind(VecX[yindx],VecY[yindx]))
           aux<-which(!is.na(yb2.tmp[yindx]) & !is.na(yb1.tmp[yindx]))
           if (length(aux)>0) yb[yindx][aux]<-yb[yindx][aux]+(yb2.tmp[yindx][aux]-yb1.tmp[yindx][aux])
           if (n.ya.eve[n]>0) {
-            yb2.tmp[ya.indx]<-extract(r.aux.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
+            yb1.tmp[ya.indx]<-extract(r.xb.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
+            yb2.tmp[ya.indx]<-extract(r.xb.FG,cbind(VecX[ya.indx],VecY[ya.indx]))
             aux<-which(!is.na(yb2.tmp[ya.indx]) & !is.na(yb1.tmp[ya.indx]))
             if (length(aux)>0) yb[ya.indx][aux]<-yb[ya.indx][aux]+(yb2.tmp[ya.indx][aux]-yb1.tmp[ya.indx][aux])
           }
@@ -2140,8 +2129,8 @@ while (L.yo.ok>0) {
       meanidiv.y.eve.q75[n]<-NA
     }
   } # END CYCLE over events
-  if (exists("r.xb.CG")) rm(r.xidi.CG,r.xb.CG,xidi.CG,xa.CG,xindx.eve.CG,r.aux.CG,xb.CG)
-  if (exists("r.xb.FG")) rm(r.xidi.FG,r.xb.FG,r.aux.FG)
+  if (exists("r.xb.CG")) rm(r.xb.CG)
+  if (exists("r.xb.FG")) rm(r.xb.FG)
   break
 } # end of DQC loop
 #
