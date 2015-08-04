@@ -148,20 +148,20 @@ st.log<-function(x,lc=NULL) {
   }
   return(res)
 }
+
 # + manage fatal error
 error_exit<-function(str=NULL) {
   print("Fatal Error:")
   if (!is.null(str)) print(str)
   quit(status=1)
 }
+
 #+
 read.cg2fg<-function(fname) {
   to.read<-file(fname, "rb")
   n<-readBin(to.read,integer(),size=4,n=1)
   print("n")
   print(n)
-#  fglab<-vector(mode="integer",length=n)
-#  nc<-vector(mode="integer",length=n)
   c1<-vector(mode="integer",length=n)
   c2<-vector(mode="integer",length=n)
   c3<-vector(mode="integer",length=n)
@@ -170,15 +170,9 @@ read.cg2fg<-function(fname) {
   w2<-vector(mode="numeric",length=n)
   w3<-vector(mode="numeric",length=n)
   w4<-vector(mode="numeric",length=n)
-#  d1<-vector(mode="numeric",length=n)
-#  d2<-vector(mode="numeric",length=n)
-#  d3<-vector(mode="numeric",length=n)
-#  d4<-vector(mode="numeric",length=n)
   aux<-matrix(readBin(to.read,numeric(),size=4,n*8),ncol=8,nrow=n,byrow=T)
   print(aux[1:5,])
   print(ncol(aux))
-#  fglab[]<-aux[,1]
-#  nc[]<-aux[,2]
   c1[]<-aux[,1]
   c2[]<-aux[,2]
   c3[]<-aux[,3]
@@ -187,10 +181,6 @@ read.cg2fg<-function(fname) {
   w2[]<-aux[,6]
   w3[]<-aux[,7]
   w4[]<-aux[,8]
-#  d1[]<-aux[,11]
-#  d2[]<-aux[,12]
-#  d3[]<-aux[,13]
-#  d4[]<-aux[,14]
   close(to.read)
   return(list(c1=c1,c2=c2,c3=c3,c4=c4,
               w1=w1,w2=w2,w3=w3,w4=w4))
@@ -245,16 +235,6 @@ CG2FG_cgweights<-function(cg2fg,x.FG,x.CG=x.eve.CG.1,na.value=na1) {
   return(out$cg_weight)
 }
 
-#G_fast<-function(xg,yg,zg,xo,yo,zo,Dh,Dz,g) {
-#  ng<-length(xg)
-#  no<-length(xo)
-#  out<-.C("g_fast",ng=as.integer(ng),no=as.integer(no),
-#                   xg=as.double(xg),yg=as.double(yg),zg=as.double(zg),
-#                   xo=as.double(xo),yo=as.double(yo),zo=as.double(zo),
-#                   Dh=as.double(Dh),Dz=as.double(Dz),g=as.double(g) )
-#  return(out$g)
-#}
-
 OI_fast<-function(yo.sel,yb.sel,xb.sel,
                   xgrid.sel,ygrid.sel,zgrid.sel,
                   VecX.sel,VecY.sel,VecZ.sel,
@@ -271,8 +251,6 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   d<-yo.sel-yb.sel
   t.d<-t(d)
   a<-tcrossprod(InvD,t.d)
-#  print(InvD[1,1:10])
-#  print(d[1:10])
   out<-.C("oi_first",no=as.integer(no), 
                      innov=as.double(d),
                      SRinv=as.numeric(InvD),
@@ -280,21 +258,6 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   vec[1:no]<-out$vec[1:no]
   vec1[1:no]<-out$vec1[1:no]
   rm(out)
-#  print(any(is.na(xg)))
-#  print(any(is.na(yg)))
-#  print(any(is.na(zg)))
-#  print(any(is.na(xo)))
-#  print(any(is.na(yo.sel)
-#  print(any(is.na(zo)))
-#  print(any(is.na(xb.sel)))
-#  print(any(is.na(xsmooth)))
-#  print(any(is.na(yo.sel)
-#  print(any(is.na(yb.sel)))
-#  print(any(is.na(d)))
-#  print(any(is.na(vec)))
-#  print(any(is.na(vec1)))
-#  print(vec)
-#  print(vec1)
   out<-.C("oi_fast",ng=as.integer(ng),no=as.integer(no),
                     xg=as.double(xgrid.sel),yg=as.double(ygrid.sel),zg=as.double(zgrid.sel),
                     xo=as.double(VecX.sel),yo=as.double(VecY.sel),zo=as.double(VecZ.sel),
@@ -306,8 +269,6 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   xa.sel[1:ng]<-out$xa[1:ng]
   xidi.sel[1:ng]<-out$xidi[1:ng]
   rm(out)
-#  print("cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1)")
-#  print(cbind(VecX.sel,VecY.sel,VecZ.sel,yo.sel,ya[yindx],yb.sel,vec,a,(vec-a),vec1))
   return(list(xa=xa.sel,xidi=xidi.sel))
 }
 #-------------------------------------------------------------------
@@ -399,7 +360,7 @@ if (!file.exists(paste(path2lib.com,"/getStationData.R",sep="")))
 source(paste(path2lib.com,"/nogrid.ncout.R",sep=""))
 source(paste(path2lib.com,"/ncout.spec.list.r",sep=""))
 source(paste(path2lib.com,"/getStationData.R",sep=""))
-#
+# load external C functions
 dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_ngb.so",sep=""))
 dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_bilinear.so",sep=""))
 dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_cgweights.so",sep=""))
@@ -621,32 +582,6 @@ print(paste("Lgrid.CG",as.integer(Lgrid.CG)))
 #
 #
 na1<-(-999.)
-#x.mask.FG<-vector(mode="numeric",length=Lgrid.FG)
-#x.ngb.FG<-vector(mode="numeric",length=Lgrid.FG)
-#x.bil.FG<-vector(mode="numeric",length=Lgrid.FG)
-#r.ngb1.FG<-r.orog.FG
-#r.bil1.FG<-r.orog.FG
-#x.mask.FG[]<-1
-#zgrid.CG[is.na(zgrid.CG)]<-na1
-#print("ngb")
-#x.ngb.FG<-CG2FG_ngb(cg2fg,x.FG=x.mask.FG,x.CG=zgrid.CG,na.value=na1,na.rm=1)
-#print("ngb ok")
-#r.ngb1.FG[mask.FG]<-x.ngb.FG
-#rnc<-writeRaster(r.ngb1.FG,filename=paste("rn.nc",sep=""),format="CDF",overwrite=TRUE)
-#print("bilinear")
-#x.bil.FG<-CG2FG_bilinear(cg2fg,x.FG=x.mask.FG,x.CG=zgrid.CG,na.value=na1)
-#print("bilinear ok")
-#r.bil1.FG[mask.FG]<-x.bil.FG
-#rnc<-writeRaster(r.bil1.FG,filename=paste("rb.nc",sep=""),format="CDF",overwrite=TRUE)
-#print("Tests")
-#r.ngb0.FG<-resample(r.orog.CG,r.orog.FG,method="ngb")
-#r.bil0.FG<-resample(r.orog.CG,r.orog.FG,method="bilinear")
-#r.ngbdiff<-r.ngb1.FG-r.ngb0.FG
-#r.bildiff<-r.bil1.FG-r.bil0.FG
-#rnc<-writeRaster(r.ngbdiff,filename=paste("rndiff.nc",sep=""),format="CDF",overwrite=TRUE)
-#rnc<-writeRaster(r.bildiff,filename=paste("rbdiff.nc",sep=""),format="CDF",overwrite=TRUE)
-#print("end")
-#q()
 #------------------------------------------------------------------------------
 # [] Read Station Information 
 # conditions:
@@ -704,62 +639,6 @@ z.FG<-extract(r.orog.FG,cbind(VecX,VecY),na.rm=T)
 stn.out.FG<-vector(length=L.y.tot)
 stn.out.FG[1:L.y.tot]<-F
 stn.out.FG[which(is.na(z.FG))]<-T
-
-
-#Test
-#i<-0
-#while ((i*ndim.FG.iteration)<=Lgrid.FG) {
-#  start<-min( i*ndim.FG.iteration+1, Lgrid.FG)
-#  end<-min( (i+1)*ndim.FG.iteration, Lgrid.FG)
-#  ndimaux.FG<-end-start+1
-#  print(paste("start end ndimaux.FG",start,end,ndimaux.FG,Lgrid.FG))
-#  pos<-start:end
-#  start.time <- Sys.time()
-#  print("G elaboration")
-#  aux.FG<-matrix(ncol=length(VecX),nrow=ndimaux.FG,data=0.)
-#  auxz.FG<-matrix(ncol=length(VecX),nrow=ndimaux.FG,data=0.)
-#  print("outer h")
-#  aux.FG<-(outer(ygrid[pos],VecY,FUN="-")**2. +
-#           outer(xgrid[pos],VecX,FUN="-")**2.)**0.5/1000.
-#  print("outer z")
-#  auxz.FG<-abs(outer(zgrid[pos],VecZ,FUN="-"))
-#  print("realG ")
-#  G.FG<-matrix(ncol=length(VecX),nrow=ndimaux.FG,data=0.)
-#  G<-matrix(ncol=length(VecX),nrow=ndimaux.FG,data=0.)
-#  G.FG<-exp(-0.5*(aux.FG/20000)**2.-0.5*(auxz.FG/500)**2.)
-#  rm(aux.FG,auxz.FG)
-#  print("G elaboration end")
-#  end.time <- Sys.time()
-#  time.taken <- end.time - start.time
-#  print(time.taken)
-#  print("G fast")
-#  start.time <- Sys.time()
-#  a<-length(VecX)
-#  out<-.C("g_fast",ng=as.integer(ndimaux.FG),no=as.integer(length(VecX)),
-#                   xg=as.double(xgrid[pos]),yg=as.double(ygrid[pos]),zg=as.double(zgrid[pos]),
-#                   xo=as.double(VecX),yo=as.double(VecY),zo=as.double(VecZ),
-#                   Dh=as.double(20000.),Dz=as.double(500.),g=as.double(G) )
-##  G<-as.matrix(out$g,nrow=ndimaux.FG,ncol=a,byrow=T)
-#  G[]<-out$g
-#  end.time <- Sys.time()
-#  time.taken <- end.time - start.time
-#  print(time.taken)
-#  print("G fast end")
-#  print(G[1,1:10])
-#  print(G.FG[1,1:10])
-#  A<-G-G.FG
-#  print(max(A))
-#  i<-i+1
-#}
-#q()
-
-
-
-
-
-
-
-
 #------------------------------------------------------------------------------
 # [] compute Disth and Distz (symmetric) matrices: 
 #  Disth(i,j)=horizontal distance between i-th station and j-th station [Km]
@@ -1562,8 +1441,8 @@ while (L.yo.ok>0) {
 #  rm(r.lngb.FG,x.lngb.FG,r.aux.CG,r.CGtoFG,r.clu.FG)
 #  rm(f.lab,f.lab.val,f.lab.n,x.CGtoFG)
 # debug
-  print("cbind(y.bwgt.CG,y.bwgt.FG)")
-  print(cbind(y.bwgt.CG,y.bwgt.FG))
+#  print("cbind(y.bwgt.CG,y.bwgt.FG)")
+#  print(cbind(y.bwgt.CG,y.bwgt.FG))
 #  r<-r.orog.FG
 #  r[mask.FG]<-x.pnop.FG
 #  rnc<-writeRaster(r,filename=paste("xpnopfg.nc",sep=""),format="CDF",overwrite=TRUE)
@@ -1783,6 +1662,8 @@ while (L.yo.ok>0) {
     #
     r.xb.CG[]<-NA
     r.xb.FG[]<-NA
+    # xb.XX is NA outside the event area
+    # xidi.XX is 0 outside the event area
     xb.CG[]<-NA
     xidi.CG[]<-0
     # identify event extension on the CG grid
@@ -1799,6 +1680,7 @@ while (L.yo.ok>0) {
     # debug
     eve.rx<-range(xgrid.CG[xindx.eve.CG])
     eve.ry<-range(ygrid.CG[xindx.eve.CG])
+    print("------------------------------------------------------------------")
     print(paste("+ eve lab >",eve.labels[n],
                 "(",n,"/",n.eve,")",
                 " #obs=",n.y.eve[n]," #stns=",(n.y.eve[n]+n.ya.eve[n]),
@@ -1932,9 +1814,9 @@ while (L.yo.ok>0) {
             aux<-which(!is.na(yb2.tmp[ya.indx]) & !is.na(yb1.tmp[ya.indx]))
             if (length(aux)>0) yb[ya.indx][aux]<-yb[ya.indx][aux]+(yb2.tmp[ya.indx][aux]-yb1.tmp[ya.indx][aux])
           }
-        }
-      }
-      #
+        } # CG to FG end
+      } # Dh.test>Dh.seq.ref endif
+      # initialization for cycle on Dz
       D.test.part<-exp(-0.5*(Disth[yindx,yindx]/Dh.test)**2.)
       J<-1000000
       if (Dh.test>=(5*Dh.seq.ref)) Dz.seq<-c(10000)
@@ -1946,9 +1828,9 @@ while (L.yo.ok>0) {
           yo.n.tmp[yindx]<-yo[yindx]
       }
 #     + cycle on vertical decorrelation length scales
-      print("cycle on vertical decorrelation length scales")
+#      print("cycle on vertical decorrelation length scales")
       for (Dz.test in Dz.seq) {
-        # compute superobservations according to decorrelation lenght-scales
+        # superobservations according to decorrelation lenght-scales
         if (n.iter!=n.Dh.seq) {
           yo.n.tmp<-vector(mode="numeric",length=L.y.tot)
           for (b in yindx) {
@@ -1999,7 +1881,7 @@ while (L.yo.ok>0) {
 # optimization: if innovation is very close to zero go to next iteration
 #      if ( !(any(abs(t.d)>0.01)) & n.iter!=n.Dh.seq) next
 #     + CrossValidated-analysis 
-      print("CrossValidated-analysis...NO")
+#      print("CrossValidated-analysis")
 #      i<-0
 #      for (b in yindx) {
 #        i<-i+1
@@ -2015,10 +1897,10 @@ while (L.yo.ok>0) {
 #        yav[yindx[i]]<-ya.tmp[yindx[i]]
 #        ybv.mat[yindx,b]<-ya.tmp[yindx]
 #      }
-      yav[yindx]<-ya[yindx]
+      yav[yindx]<-NA
 #      rm(W.1,InvD.1,D,W,S,aux)
 #     + Analysis on other station points within the event areas
-      print("Analysis on other station points within the event areas...NO")
+#      print("Analysis on other station points within the event areas")
 #      if (n.ya.eve[n]>0) {
 #        G.ya<-matrix(ncol=n.y.eve[n],nrow=n.ya.eve[n],data=0.)
 #        G.ya<-exp(-0.5*(Disth[ya.indx,yindx]/Dh.test)**2.
@@ -2035,12 +1917,12 @@ while (L.yo.ok>0) {
 #        yav[ya.indx]<-ya[ya.indx]
 #        rm(K,G.ya)
 #      }
-      yav[ya.indx]<-ya[ya.indx]
+      yav[ya.indx]<-NA
 #     optimization: 
 #     + Dh>ref.value ->analysis on CG; Dh<ref.value ->analysis on FG
 #     + Analysis on CG
       if (Dh.test>Dh.seq.ref) {
-        print("Analysis on CG")
+#        print("Analysis on CG")
         oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
                     xb.sel=xb.CG[xindx.eve.CG],
                     xgrid.sel=xgrid.CG[xindx.eve.CG],ygrid.sel=ygrid.CG[xindx.eve.CG],zgrid.sel=zgrid.CG[xindx.eve.CG],
@@ -2049,21 +1931,14 @@ while (L.yo.ok>0) {
                     Dh.cur=Dh.test,Dz.cur=Dz.choice) 
         xa.CG[xindx.eve.CG]<-oi$xa
         xidi.CG[xindx.eve.CG]<-xidi.CG[xindx.eve.CG]+oi$xidi
-        print("xa.CG[xindx.eve.CG]")
-        print(xa.CG[xindx.eve.CG])
         rm(oi)
         # next background is the current analysis, only a little bit smoothed
         # smoothing is for realistic border effects
         xb.CG[]<-NA
         xb.CG[xindx.eve.CG]<-xa.CG[xindx.eve.CG]
-        print("end Analysis on CG")
-#r<-r.orog.CG
-#r[]<-NA
-#r[mask.CG]<-xb.CG
-#rnc<-writeRaster(r,filename=paste("r.nc",sep=""),format="CDF",overwrite=TRUE)
       } else { 
 #     + Analysis on FG
-        print("Analysis on FG")
+#        print("Analysis on FG")
         oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
                     xb.sel=xb.FG[xindx.eve.FG],
                     xgrid.sel=xgrid[xindx.eve.FG],ygrid.sel=ygrid[xindx.eve.FG],zgrid.sel=zgrid[xindx.eve.FG],
@@ -2073,7 +1948,7 @@ while (L.yo.ok>0) {
         xa.FG[xindx.eve.FG]<-oi$xa
         xidi.FG[xindx.eve.FG]<-xidi.FG[xindx.eve.FG]+oi$xidi
         rm(oi)
-        print("end Analysis on FG")
+#        print("end Analysis on FG")
         # current analysis is next iteration background
         xb.FG[]<-NA
         xb.FG[xindx.eve.FG]<-xa.FG[xindx.eve.FG]
@@ -2082,7 +1957,6 @@ while (L.yo.ok>0) {
       yb[yindx]<-ya[yindx]
       yb[ya.indx]<-ya[ya.indx]
     } # end cycle on horizontal decorrelation lenght scales
-    if (exists("K.CG")) rm(K.CG,G.CG)
     #
     idi.norm.fac[n]<-max(xidi.FG[xindx.eve.FG],yidi.eve[yindx],yidiv.eve[yindx])
     xidi.FG[xindx.eve.FG]<-xidi.FG[xindx.eve.FG]/idi.norm.fac[n]
