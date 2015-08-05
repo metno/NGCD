@@ -148,11 +148,128 @@ st.log<-function(x,lc=NULL) {
   }
   return(res)
 }
+
 # + manage fatal error
 error_exit<-function(str=NULL) {
   print("Fatal Error:")
   if (!is.null(str)) print(str)
   quit(status=1)
+}
+
+#+
+read.cg2fg<-function(fname) {
+  to.read<-file(fname, "rb")
+  n<-readBin(to.read,integer(),size=4,n=1)
+  print("n")
+  print(n)
+  c1<-vector(mode="integer",length=n)
+  c2<-vector(mode="integer",length=n)
+  c3<-vector(mode="integer",length=n)
+  c4<-vector(mode="integer",length=n)
+  w1<-vector(mode="numeric",length=n)
+  w2<-vector(mode="numeric",length=n)
+  w3<-vector(mode="numeric",length=n)
+  w4<-vector(mode="numeric",length=n)
+  aux<-matrix(readBin(to.read,numeric(),size=4,n*8),ncol=8,nrow=n,byrow=T)
+  print(aux[1:5,])
+  print(ncol(aux))
+  c1[]<-aux[,1]
+  c2[]<-aux[,2]
+  c3[]<-aux[,3]
+  c4[]<-aux[,4]
+  w1[]<-aux[,5]
+  w2[]<-aux[,6]
+  w3[]<-aux[,7]
+  w4[]<-aux[,8]
+  close(to.read)
+  return(list(c1=c1,c2=c2,c3=c3,c4=c4,
+              w1=w1,w2=w2,w3=w3,w4=w4))
+}
+
+CG2FG_bilinear<-function(cg2fg,x.FG,x.CG,na.value) {
+  n<-length(x.FG)
+  out<-.C("cg2fg_bilinear",nfg=as.integer(n),
+                           fg_mask=as.double(x.FG),
+                           fg_field=as.double(x.FG),
+                           cg_field=as.double(x.CG),
+                           cg_c1=as.integer(cg2fg$c1),
+                           cg_c2=as.integer(cg2fg$c2),
+                           cg_c3=as.integer(cg2fg$c3),
+                           cg_c4=as.integer(cg2fg$c4),
+                           cg_w1=as.double(cg2fg$w1),
+                           cg_w2=as.double(cg2fg$w2),
+                           cg_w3=as.double(cg2fg$w3),
+                           cg_w4=as.double(cg2fg$w4),
+                           na=as.double(na.value) )
+  return(out$fg_field)
+}
+
+CG2FG_ngb<-function(cg2fg,x.FG,x.CG,na.value,na.rm) {
+  n<-length(x.FG)
+  out<-.C("cg2fg_ngb",nfg=as.integer(n),
+                      fg_mask=as.double(x.FG),
+                      fg_field=as.double(x.FG),
+                      cg_field=as.double(x.CG),
+                      cg_c1=as.integer(cg2fg$c1),
+                      cg_c2=as.integer(cg2fg$c2),
+                      cg_c3=as.integer(cg2fg$c3),
+                      cg_c4=as.integer(cg2fg$c4),
+                      na=as.double(na.value),
+                      na_rm=as.integer(na.rm) )
+  return(out$fg_field)
+}
+
+CG2FG_cgweights<-function(cg2fg,x.FG,x.CG=x.eve.CG.1,na.value=na1) {
+  nfg<-length(x.FG)
+  ncg<-length(x.CG)
+  out<-.C("cg2fg_cgweights",nfg=as.integer(nfg),
+                            ncg=as.integer(ncg),
+                            fg_weight=as.double(x.FG),
+                            cg_weight=as.double(x.CG),
+                            cg_mask=as.double(x.CG),
+                            cg_c1=as.integer(cg2fg$c1),
+                            cg_c2=as.integer(cg2fg$c2),
+                            cg_c3=as.integer(cg2fg$c3),
+                            cg_c4=as.integer(cg2fg$c4),
+                            na=as.double(na.value) )
+  return(out$cg_weight)
+}
+
+OI_fast<-function(yo.sel,yb.sel,xb.sel,
+                  xgrid.sel,ygrid.sel,zgrid.sel,
+                  VecX.sel,VecY.sel,VecZ.sel,
+                  x.bwgt.sel,xinf,
+                  Dh.cur,Dz.cur) {
+  no<-length(yo.sel)
+  ng<-length(xb.sel)
+  xa.sel<-vector(mode="numeric",length=ng)
+  xidi.sel<-vector(mode="numeric",length=ng)
+  vec<-vector(mode="numeric",length=no)
+  vec1<-vector(mode="numeric",length=no)
+  xa.sel[]<-0
+  xidi.sel[]<-0
+  d<-yo.sel-yb.sel
+  t.d<-t(d)
+  a<-tcrossprod(InvD,t.d)
+  out<-.C("oi_first",no=as.integer(no), 
+                     innov=as.double(d),
+                     SRinv=as.numeric(InvD),
+                     vec=as.double(vec), vec1=as.double(vec1) )
+  vec[1:no]<-out$vec[1:no]
+  vec1[1:no]<-out$vec1[1:no]
+  rm(out)
+  out<-.C("oi_fast",ng=as.integer(ng),no=as.integer(no),
+                    xg=as.double(xgrid.sel),yg=as.double(ygrid.sel),zg=as.double(zgrid.sel),
+                    xo=as.double(VecX.sel),yo=as.double(VecY.sel),zo=as.double(VecZ.sel),
+                    Dh=as.double(Dh.cur),Dz=as.double(Dz.cur),
+                    xb=as.double(xb.sel),
+                    vec=as.double(vec),vec1=as.double(vec1),
+                    smooth=as.double(x.bwgt.sel),xinf=as.double(xinf),
+                    xa=as.double(xa.sel),xidi=as.double(xidi.sel) )
+  xa.sel[1:ng]<-out$xa[1:ng]
+  xidi.sel[1:ng]<-out$xidi[1:ng]
+  rm(out)
+  return(list(xa=xa.sel,xidi=xidi.sel))
 }
 #-------------------------------------------------------------------
 # [] Setup parameters
@@ -243,6 +360,15 @@ if (!file.exists(paste(path2lib.com,"/getStationData.R",sep="")))
 source(paste(path2lib.com,"/nogrid.ncout.R",sep=""))
 source(paste(path2lib.com,"/ncout.spec.list.r",sep=""))
 source(paste(path2lib.com,"/getStationData.R",sep=""))
+# load external C functions
+dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_ngb.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_bilinear.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_PREC1d/src/cg2fg_cgweights.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_PREC1d/src/oi_first.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_PREC1d/src/oi_fast.so",sep=""))
+# CG to FG, faster! 
+file.cg2fg<-paste(main.path.geoinfo,"/fennodem10000to1000_easy.dat",sep="")
+cg2fg<-read.cg2fg(fname=file.cg2fg)
 # test mode
 print(testmode)
 if (testmode) {
@@ -453,6 +579,9 @@ print("grid.CG parameters")
 print(paste("nx.CG ny.CG dx.CG dy.CG",as.integer(nx.CG),as.integer(ny.CG),round(dx.CG,2),round(dy.CG,2)))
 print(paste("xmn.CG xmx.CG ymn.CG ymx.CG",round(xmn.CG,2),round(xmx.CG,2),round(ymn.CG,2),round(ymx.CG,2)))
 print(paste("Lgrid.CG",as.integer(Lgrid.CG)))
+#
+#
+na1<-(-999.)
 #------------------------------------------------------------------------------
 # [] Read Station Information 
 # conditions:
@@ -460,7 +589,7 @@ print(paste("Lgrid.CG",as.integer(Lgrid.CG)))
 #    obtained from lat,lon. Furthermore, the location must be in Norway or on
 #    the border (less than max.Km.stnINdomain)
 # 2. stations in CG
-stations.tmp<-getStationMetadata_NGCD(from.year=yyyy.b,to.year=yyyy.b,
+stations.tmp<-getStationMetadata_NGCD(from.year=yyyy.b,to.year=yyyy.b,path=main.path.output,
                                       max.Km=max.Km.stnINdomain,var="PREC1d")
 n.tmp<-length(stations.tmp$stnr)
 stn.out.CG<-vector(length=n.tmp)
@@ -544,7 +673,7 @@ ydqc.flag[]<-NA
 #} else {
 #  data<-read.csv(file=observed.data)
 #}
-data<-getStationData_NGCD(var="PREC1d", yyyy=yyyy.b, mm=formatC(mm.b,width=2,flag="0"), dd=formatC(dd.b,width=2,flag="0"), statlist=stations)
+data<-getStationData_NGCD(var="PREC1d", yyyy=yyyy.b, mm=formatC(mm.b,width=2,flag="0"), dd=formatC(dd.b,width=2,flag="0"), statlist=stations,path=main.path.output)
 # debug: start
 print("Observed data (alligned with station info):")
 print(data)
@@ -1166,10 +1295,10 @@ while (L.yo.ok>0) {
 # eve.lables[i] (i=1,..,n.eve) i-th precip event label value
 # x.eve.CG[i] i-th CG gridpoint association to precip events
 # r.eve.CG[i] correspondent raster data structure
-# y.bweight.CG[i] border-weight (between 0-1) for smoothing along the border
+# y.bwgt.CG[i] border-weight (between 0-1) for smoothing along the border
 # x.eve.FG[i] i-th FG gridpoint association to precip events
 # r.eve.FG[i] correspondent raster data structure
-# *.bweight.* border-weight (between 0-1) for smoothing along the border
+# *.bwgt.* border-weight (between 0-1) for smoothing along the border
 #    CG-> minimum dist from borders/(2*mean(c(dx.CG,dy.CG))) 
 #    FG-> resample CG events with bilinear interpolation (events on CG=1, outside events=0)
   x.eve.CG<-vector(mode="numeric",length=Lgrid.CG)
@@ -1194,18 +1323,20 @@ while (L.yo.ok>0) {
   xedge.CG<-xy.CG[edge.CG,1]
   yedge.CG<-xy.CG[edge.CG,2]
   # compute border-weights
-  r.dist<-distanceFromPoints(r.eve.CG,cbind(xedge.CG,yedge.CG))
-  aux<-getValues(r.dist)[mask.CG]/(2*mean(c(dx.CG,dy.CG)))
-  aux[is.na(x.eve.CG)|x.eve.CG<1]<-NA
-  aux[aux>1]<-1
-  x.bweight.CG<-exp(-0.5*((aux-1)/0.25)**2)
-  r.bweight.CG<-r.orog.CG
-  r.bweight.CG[]<-NA
-  r.bweight.CG[mask.CG]<-x.bweight.CG
-  y.bweight.CG<-extract(r.bweight.CG,cbind(VecX,VecY),method="bilinear")
-  storage.mode(y.bweight.CG)<-"numeric"
-  y.bweight.CG[is.na(y.bweight.CG)]<-1
-  rm(r.edge.CG,x.edge.CG,edge.CG,xedge.CG,yedge.CG,r.dist,aux,r.bweight.CG)
+#  r.dist<-distanceFromPoints(r.eve.CG,cbind(xedge.CG,yedge.CG))
+#  aux<-getValues(r.dist)[mask.CG]/(2*mean(c(dx.CG,dy.CG)))
+#  aux[is.na(x.eve.CG)|x.eve.CG<1]<-NA
+#  aux[aux>1]<-1
+#  x.bwgt.CG<-exp(-0.5*((aux-1)/0.25)**2)
+#  r.bwgt.CG<-r.orog.CG
+#  r.bwgt.CG[]<-NA
+#  r.bwgt.CG[mask.CG]<-x.bwgt.CG
+#  y.bwgt.CG<-extract(r.bwgt.CG,cbind(VecX,VecY),method="bilinear")
+#  storage.mode(y.bwgt.CG)<-"numeric"
+#  y.bwgt.CG[is.na(y.bwgt.CG)]<-1
+##  rm(r.edge.CG,x.edge.CG,edge.CG,xedge.CG,yedge.CG,r.dist,aux,r.bwgt.CG)
+#  rm(r.edge.CG,x.edge.CG,edge.CG,xedge.CG,yedge.CG,r.dist,aux)
+#  rnc<-writeRaster(r.bwgt.CG,filename=paste("rbwgtcg0.nc",sep=""),format="CDF",overwrite=TRUE)
 # assign stations at precipitation events
   print("++ Precipitation events labeling: stations")
   y.eve<-extract(r.eve.CG,cbind(VecX,VecY),na.rm=T)
@@ -1248,128 +1379,79 @@ while (L.yo.ok>0) {
     n.eve<-length(eve.labels)
   }
   if (exists("r")) rm(r,x.aux,aux,dist)
-  #
+  #----------------------------------------------------------------------------
   print("++ Precipitation events labeling: FG")
-  # CG to FG resample labels with nearest neighbour (ngb)
-  r.lngb.FG<-resample(r.eve.CG,r.orog.FG,method="ngb")
-  x.lngb.FG<-getValues(r.lngb.FG)[mask.FG]
-  x.lngb.FG.1<-x.lngb.FG
-  x.lngb.FG.1[is.na(x.lngb.FG.1)]<-(-999.)
-  rnc<-writeRaster(r.lngb.FG,filename=paste("rlngbFG.nc",sep=""),format="CDF",overwrite=TRUE)
+# x.pnop.CG <- prec/no-prec distinction over CG (1=prec;0=no)
+# x.pnop.FG <- prec/no-prec distinction over FG (1=prec;0=no)
+#              --> smooth transition 0-1 by using bilinear int. <--
+# x.eve.CG <- event labels on CG (NA = no precip)
+# x.eve.CG.1 <- event labels on CG (na1 = no precip)
+# x.eve.FG <- event labels on FG (NA = no precip)
+# x.eve.FG.1 <- event labels on FG (na1 = no precip)
+# --> given an event, a FG point is always surrounded by at least one CG point of the same event
+# x.bwgt.FG <- background weights for more realistic prec/no-prec transition (0-1)
+# y.bwgt.FG <- background weights for more realistic prec/no-prec transition (0-1)
+# x.lngb.FG <- labels from CG to FG (na1 = no precip)
+#  x.lngb.FG<-vector(mode="numeric",length=Lgrid.FG)
+#  out<-.C("cg2fg_ngb",nsel=as.integer(length(cg2fg$fglab)),nlab=as.integer(length(cg2fg$fglab)),
+#                      fglab=as.integer(cg2fg$fglab),fglabsel=as.integer(cg2fg$fglab),
+#                      fgf=as.double(x.lngb.FG),cgf=as.numeric(x.eve.CG.1),cgngb=as.integer(cg2fg$cngb))
+#  x.lngb.FG<-out$fgf
+#  rm(out)
   # CG to FG resample event area with bilinear
-  r.aux.CG<-r.eve.CG
-  r.aux.CG[!is.na(r.eve.CG)]<-1
-  r.aux.CG[is.na(r.eve.CG)]<-0
-  r.CGtoFG<-resample(r.aux.CG,r.orog.FG,method="bilinear")
-  r.CGtoFG[r.CGtoFG<0.01]<-NA
-  x.CGtoFG<-getValues(r.CGtoFG)[mask.FG]
-  rnc<-writeRaster(r.CGtoFG,filename=paste("rCGtoFG.nc",sep=""),format="CDF",overwrite=TRUE)
-  # FG clump all the events together, although with a different label respect to CG
-  r.clu.FG<-clump(r.CGtoFG,directions=8,gaps=F)
-  rnc<-writeRaster(r.clu.FG,filename=paste("rcluFG.nc",sep=""),format="CDF",overwrite=TRUE)
-  x.clu.FG.tmp<-getValues(r.clu.FG)[mask.FG]
-  mask.clu.FG<-which(!is.na(x.clu.FG.tmp))
-  L.mask.clu.FG<-length(mask.clu.FG)
-  NAmask.clu.FG<-which(is.na(x.clu.FG.tmp))
-  f.lab<-freq(r.clu.FG)
-  aux<-which(!is.na(f.lab[,1]))
-  f.lab.val<-f.lab[aux,1]
-  f.lab.n<-f.lab[aux,2]
-  x.clu.FG<-x.clu.FG.tmp
-#
-  dyn.load("/home/cristianl/projects/NGCD/Bspat_PREC1d/src/distance_nearp.so")
-  dyn.load("/home/cristianl/projects/NGCD/Bspat_PREC1d/src/label_CGtoFG.so")
-  out<-.C("label_CGtoFG",nint=as.integer(L.mask.clu.FG),
-                         xlabCG=as.double(x.lngb.FG.1[mask.clu.FG]),
-                         xlabFGtmp=as.double(x.clu.FG.tmp[mask.clu.FG]),
-                         xlabFG=as.double(x.clu.FG[mask.clu.FG]))
-  x.clu.FG[mask.clu.FG]<-out$xlabFG
-  mask.todo<-which(x.clu.FG==0)
-  Ltodo<-length(mask.todo)
-#  print(out)
-#  print(names(out))
-#  x.dist<-vector(mode="numeric",length=Lgrid.FG)
-#  x.dist[]<-NA
-#  x.dist[mask.clu.FG]<-out$xlabFG
-#  r.dist<-r.clu.FG
-#  r.dist[]<-NA
-#  r.dist[mask.FG]<-x.dist
-#  rnc<-writeRaster(r.dist,filename=paste("rdist_fast.nc",sep=""),format="CDF",overwrite=TRUE)
-#  print("dist end")
-#  q()
-  # compute the weights to be used in the transition area between rain and no-rain 
-  x.CGtoFG[is.na(x.CGtoFG) & !is.na(x.clu.FG)]<-0
-  x.bweight.FG<-exp(-0.5*((x.CGtoFG-1)/0.25)**2)
-  r.bweight.FG<-r.orog.FG
-  r.bweight.FG[]<-NA
-  r.bweight.FG[mask.FG]<-x.bweight.FG
-  y.bweight.FG<-extract(r.bweight.FG,cbind(VecX,VecY),method="bilinear")
-  storage.mode(y.bweight.FG)<-"numeric"
-  y.bweight.FG[is.na(y.bweight.FG)]<-1
-  # link events on FG (bilinear) with the closest CG events (identified by means of ngb+edge)
-  # note: time consuming! because distanceFromPoints compute the distance between each
-  #       FG gridpoint and the event edge, also for NA gridpoints
-  r.aux.FG<-r.orog.FG
-  x.dist<-vector(mode="numeric",length=Ltodo)
-  x.dist.min<-vector(mode="numeric",length=Ltodo)
+  x.eve.CG<-getValues(r.eve.CG)[mask.CG]
+  x.eve.CG.1<-x.eve.CG
+  x.eve.CG.1[is.na(x.eve.CG.1)]<-na1
+  x.pnop.CG<-vector(mode="numeric",length=Lgrid.CG)
+  x.pnop.FG<-vector(mode="numeric",length=Lgrid.FG)
+  x.mask.FG<-vector(mode="numeric",length=Lgrid.FG)
+  x.pnop.CG[x.eve.CG.1!=na1]<-1
+  x.pnop.CG[x.eve.CG.1==na1]<-0
+  x.mask.FG[]<-1
+  x.pnop.FG<-CG2FG_bilinear(cg2fg,x.FG=x.mask.FG,x.CG=x.pnop.CG,na.value=na1)
+  x.pnop.FG[which(x.pnop.FG<0.01)]<-rep(0,length(which(x.pnop.FG<0.01)))
+  # FG clump 
   x.eve.FG<-vector(mode="numeric",length=Lgrid.FG)
-  x.dist.min[]<-NA
-  x.dist[]<--999.
-  x.eve.FG<-x.clu.FG
-  rm.eve<-vector(mode="numeric")
-  firstTime<-TRUE
-  for (n in 1:n.eve) {
-    print(paste("n/n.eve: ",n,"/",n.eve,sep=""))
-    auxx<-which(x.lngb.FG==eve.labels[n])
-    if (length(auxx)==0) next 
-    r.aux.FG[]<-NA
-    r.aux.FG[mask.FG[auxx]]<-1
-#    r.edge.FG<-edge(r.aux.FG,type="inner")
-    r.edge.FG<-edge(r.aux.FG,type="outer")
-    x.edge.FG<-getValues(r.edge.FG)[mask.FG]
-    x.edge.FG[x.edge.FG!=1]<-NA
-    r.edge.FG[]<-NA
-    r.edge.FG[mask.FG]<-x.edge.FG
-    edge.FG<-which(!is.na(getValues(r.edge.FG)))
-    n.edge.FG<-length(edge.FG)
-    if (n.edge.FG>0) {
-      xedge.FG<-xy.FG[edge.FG,1]
-      yedge.FG<-xy.FG[edge.FG,2]
-#      print("dist start")
-#      r.dist<-distanceFromPoints(r.clu.FG,cbind(xedge.FG,yedge.FG))
-#      x.dist<-getValues(r.dist)[mask.FG]
-#      rnc<-writeRaster(r.dist,filename=paste("rdist_slow.nc",sep=""),format="CDF",overwrite=TRUE)
-#      print("dist end")
-      #
-      a<-length(xedge.FG)
-      b<-xgrid[mask.todo]
-      c<-ygrid[mask.todo]
-      out<-.C("foo",ngi=as.integer(Ltodo),npi=as.integer(a),xg=as.double(b),yg=as.double(c),xp=as.double(xedge.FG),yp=as.double(yedge.FG),dist=as.double(x.dist))
-      x.dist<-out$dist
-      rm(out)
-#      print(out)
-#      print(names(out))
-#      x.dist[]<-NA
-#      x.dist[mask.todo]<-out$dist
-#      r.dist<-r.aux.FG
-#      r.dist[]<-NA
-#      r.dist[mask.FG]<-x.dist
-#      rnc<-writeRaster(r.dist,filename=paste("rdist_fast.nc",sep=""),format="CDF",overwrite=TRUE)
-#      print("dist end")
-#      q()
-      if (firstTime) {
-        x.dist.min<-x.dist
-        x.eve.FG[mask.todo]<-eve.labels[n]
-        firstTime<-FALSE
-      } else {
-        aux<-which(x.dist<x.dist.min)
-        if (length(aux)>0) {
-          x.eve.FG[mask.todo[aux]]<-eve.labels[n]
-          x.dist.min[aux]<-x.dist[aux]
-        }
-      }
-    }
-  }
+  x.eve.FG.1<-vector(mode="numeric",length=Lgrid.FG)
+  x.mask.FG[which(x.pnop.FG==0)]<-na1
+  x.eve.FG.1<-CG2FG_ngb(cg2fg,x.FG=x.mask.FG,x.CG=x.eve.CG.1,na.value=na1,na.rm=1)
+  x.eve.FG[]<-x.eve.FG.1
+  x.eve.FG[which(x.eve.FG.1==na1)]<-NA
+  # compute the weights to be used in the transition area between rain and no-rain 
+  x.bwgt.FG<-vector(mode="numeric",length=Lgrid.FG)
+  x.bwgt.FG[]<-exp(-0.5*((x.pnop.FG-1)/0.25)**2)
+  r.bwgt.FG<-r.orog.FG
+  r.bwgt.FG[]<-NA
+  r.bwgt.FG[mask.FG]<-x.bwgt.FG
+  y.bwgt.FG<-extract(r.bwgt.FG,cbind(VecX,VecY),method="bilinear")
+  storage.mode(y.bwgt.FG)<-"numeric"
+  y.bwgt.FG[is.na(y.bwgt.FG)]<-1
+  # compute CG weights (given FG weights)
+  x.pnop.areal.CG<-vector(mode="numeric",length=Lgrid.CG)
+  x.pnop.areal.CG<-CG2FG_cgweights(cg2fg,x.FG=x.pnop.FG,x.CG=x.eve.CG.1,na.value=na1)
+  x.bwgt.CG<-vector(mode="numeric",length=Lgrid.CG)
+  x.bwgt.CG[]<-exp(-0.5*((x.pnop.areal.CG-1)/0.25)**2)
+  r.bwgt.CG<-r.orog.CG
+  r.bwgt.CG[]<-NA
+  r.bwgt.CG[mask.CG]<-x.bwgt.CG
+  y.bwgt.CG<-extract(r.bwgt.CG,cbind(VecX,VecY),method="bilinear")
+  storage.mode(y.bwgt.CG)<-"numeric"
+  y.bwgt.CG[is.na(y.bwgt.CG)]<-1
+# clean
+#  rm(r.lngb.FG,x.lngb.FG,r.aux.CG,r.CGtoFG,r.clu.FG)
+#  rm(f.lab,f.lab.val,f.lab.n,x.CGtoFG)
+# debug
+#  print("cbind(y.bwgt.CG,y.bwgt.FG)")
+#  print(cbind(y.bwgt.CG,y.bwgt.FG))
+#  r<-r.orog.FG
+#  r[mask.FG]<-x.pnop.FG
+#  rnc<-writeRaster(r,filename=paste("xpnopfg.nc",sep=""),format="CDF",overwrite=TRUE)
+#  r[mask.FG]<-x.eve.FG
+#  rnc<-writeRaster(r,filename=paste("xevefg.nc",sep=""),format="CDF",overwrite=TRUE)
+#  rnc<-writeRaster(r.eve.CG,filename=paste("revecg.nc",sep=""),format="CDF",overwrite=TRUE)
+#  rnc<-writeRaster(r.bwgt.FG,filename=paste("rbwgtfg.nc",sep=""),format="CDF",overwrite=TRUE)
+#  rnc<-writeRaster(r.bwgt.CG,filename=paste("rbwgtcg.nc",sep=""),format="CDF",overwrite=TRUE)
+#------------------------------------------------------------------------------
 # finally, we're interested only in events occurring in Norway
   aux<-which(eve.labels %in% x.eve.FG)
   if (length(aux)<n.eve) {
@@ -1379,11 +1461,6 @@ while (L.yo.ok>0) {
     n.eve<-length(eve.labels)
     rm(tmp)
   }
-  r.aux.FG[]<-NA
-  r.aux.FG[mask.FG]<-x.eve.FG
-  rnc<-writeRaster(r.aux.FG,filename=paste("reveFG",sep=""),format="CDF",overwrite=TRUE)
-  rm(r.lngb.FG,x.lngb.FG,r.aux.CG,r.CGtoFG,r.clu.FG)
-  rm(f.lab,f.lab.val,f.lab.n,x.CGtoFG)
   rm(aux)
 # NO-RAIN OVER THE WHOLE DOMAIN
   if (n.eve==0) {
@@ -1437,7 +1514,9 @@ while (L.yo.ok>0) {
   xb.FG<-vector(mode="numeric",length=Lgrid.FG)
   xa.CG<-vector(mode="numeric",length=Lgrid.CG)
   xb.CG<-vector(mode="numeric",length=Lgrid.CG)
+  xidi.CG<-vector(mode="numeric",length=Lgrid.CG)
   xidi.FG<-vector(mode="numeric",length=Lgrid.FG)
+  xtmp.FG<-vector(mode="numeric",length=Lgrid.FG)
 # Y vectors (station locations)
   ya<-vector(mode="numeric",length=L.y.tot)
   yb<-vector(mode="numeric",length=L.y.tot)
@@ -1491,6 +1570,8 @@ while (L.yo.ok>0) {
   xa.FG[]<-NA
   xb.FG[]<-NA
   xidi.FG[]<-0
+  xidi.CG[]<-0
+  xtmp.FG[]<-0
   xa.CG[]<-NA
   xb.CG[]<-NA
   yo.n[]<-NA
@@ -1576,25 +1657,13 @@ while (L.yo.ok>0) {
     # initialization
     r.xb.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
                      ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
-    r.xidi.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                       ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
-    r.aux.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                      ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
     r.xb.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
                      ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    r.xidi.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                       ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                      ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
-    xb.CG<-vector(mode="numeric",length=Lgrid.CG)
-    xidi.CG<-vector(mode="numeric",length=Lgrid.CG)
     #
     r.xb.CG[]<-NA
-    r.xidi.CG[]<-NA
-    r.aux.CG[]<-NA
     r.xb.FG[]<-NA
-    r.xidi.FG[]<-NA
-    r.aux.FG[]<-NA
+    # xb.XX is NA outside the event area
+    # xidi.XX is 0 outside the event area
     xb.CG[]<-NA
     xidi.CG[]<-0
     # identify event extension on the CG grid
@@ -1611,6 +1680,7 @@ while (L.yo.ok>0) {
     # debug
     eve.rx<-range(xgrid.CG[xindx.eve.CG])
     eve.ry<-range(ygrid.CG[xindx.eve.CG])
+    print("------------------------------------------------------------------")
     print(paste("+ eve lab >",eve.labels[n],
                 "(",n,"/",n.eve,")",
                 " #obs=",n.y.eve[n]," #stns=",(n.y.eve[n]+n.ya.eve[n]),
@@ -1630,15 +1700,15 @@ while (L.yo.ok>0) {
     if (n.y.eve[n]==1) {
       # background=observation -> analysis field =observation smoothed at the borders
       # note: xidi=-1; yidi/v=-1; yb=NA; yav=0
-      xa.FG[xindx.eve.FG]<-yo[yindx]*x.bweight.FG[xindx.eve.FG]
+      xa.FG[xindx.eve.FG]<-yo[yindx]*x.bwgt.FG[xindx.eve.FG]
       xidi.FG[xindx.eve.FG]<-(-1)
-      ya[yindx]<-yo[yindx]*y.bweight.FG[yindx]
+      ya[yindx]<-yo[yindx]*y.bwgt.FG[yindx]
       yb[yindx]<-NA
       yav[yindx]<-0
       yidi.eve[yindx]<-(-1)
       yidiv.eve[yindx]<-(-1)
       if (n.ya.eve[n]>0) {
-        ya[ya.indx]<-yo[yindx]*y.bweight.FG[ya.indx] 
+        ya[ya.indx]<-yo[yindx]*y.bwgt.FG[ya.indx] 
         yb[ya.indx]<-NA
         yav[ya.indx]<-0
         yidi.eve[ya.indx]<-(-1)
@@ -1698,10 +1768,10 @@ while (L.yo.ok>0) {
     print("Dh.seq [Km]:")
     print(Dh.seq)
 #   + pre-elaboration to obtain err-cov matrices on CG
-    G.CG<-matrix(ncol=n.y.eve[n],nrow=Lgrid.eve.CG,data=0.)
-    aux.CG<-(outer(ygrid.CG[xindx.eve.CG],VecY[yindx],FUN="-")**2. +
-             outer(xgrid.CG[xindx.eve.CG],VecX[yindx],FUN="-")**2.)**0.5/1000.
-    auxz.CG<-abs(outer(zgrid.CG[xindx.eve.CG],VecZ[yindx],FUN="-"))
+#    G.CG<-matrix(ncol=n.y.eve[n],nrow=Lgrid.eve.CG,data=0.)
+#    aux.CG<-(outer(ygrid.CG[xindx.eve.CG],VecY[yindx],FUN="-")**2. +
+#             outer(xgrid.CG[xindx.eve.CG],VecX[yindx],FUN="-")**2.)**0.5/1000.
+#    auxz.CG<-abs(outer(zgrid.CG[xindx.eve.CG],VecZ[yindx],FUN="-"))
     InvD<-matrix(data=0,ncol=n.y.eve[n],nrow=n.y.eve[n])
 #   + cycle on horizontal decorrelation length scales
     flag.CGtoFG<-T
@@ -1710,47 +1780,43 @@ while (L.yo.ok>0) {
       n.iter<-n.iter+1
       # background
       if (Dh.test>Dh.seq.ref) {
-        y.bweight<-y.bweight.CG
+        y.bwgt<-y.bwgt.CG
       } else {
-        y.bweight<-y.bweight.FG
+        y.bwgt<-y.bwgt.FG
         # from CG to FG
         if (flag.CGtoFG) {
           flag.CGtoFG<-F
-          r.xb.FG[]<-NA
-          r.xb.FG[mask.FG[xindx.eve.FG]]<-1
-          r.xb.FG<-trim(r.xb.FG)
-          r.xidi.FG<-r.xb.FG
-          #          
-          r.xb.CG[]<-NA
-          r.xb.CG[mask.CG[xindx.eve.CG]]<-xb.CG[xindx.eve.CG]
-          r.xb.CG<-trim(r.xb.CG)
-          yb1.tmp[yindx]<-extract(r.xb.CG,cbind(VecX[yindx],VecY[yindx]))
-          if (n.ya.eve[n]>0) yb1.tmp[ya.indx]<-extract(r.xb.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
-          r.xidi.CG[]<-NA
-          r.xidi.CG[mask.CG[xindx.eve.CG]]<-xidi.CG[xindx.eve.CG]
-          r.xidi.CG<-trim(r.xidi.CG)
-          # "trim" and "crop" for a faster "resample"
-          r.xb.FG<-resample(r.xb.CG,r.xb.FG,method="bilinear")
-          r.xb.FG<-extend(r.xb.FG,r.orog.FG)
-          xb.FG<-getValues(r.xb.FG)[mask.FG]
-          xb.FG[xindx.eve.FG][is.na(xb.FG[xindx.eve.FG])]<-0
           #
+          r.xb.CG[mask.CG]<-xb.CG
+          xb.CG[is.na(xb.CG)]<-0
+          xidi.CG[is.na(xidi.CG)]<-0
+          #
+          xtmp.FG[]<-na1
+          xtmp.FG[xindx.eve.FG]<-1
+          xtmp.FG<-CG2FG_bilinear(cg2fg,x.FG=xtmp.FG,x.CG=xb.CG,na.value=na1)
+          xb.FG[]<-NA
+          xb.FG[xindx.eve.FG]<-xtmp.FG[xindx.eve.FG]
+          r.xb.FG[]<-NA
+          r.xb.FG[mask.FG]<-xb.FG
+          #
+          xtmp.FG[]<-na1
+          xtmp.FG[xindx.eve.FG]<-1
+          xtmp.FG<-CG2FG_bilinear(cg2fg,x.FG=xtmp.FG,x.CG=xidi.CG,na.value=na1)
+          xidi.FG[xindx.eve.FG]<-xtmp.FG[xindx.eve.FG]
+          #
+          yb1.tmp[yindx]<-extract(r.xb.CG,cbind(VecX[yindx],VecY[yindx]))
           yb2.tmp[yindx]<-extract(r.xb.FG,cbind(VecX[yindx],VecY[yindx]))
           aux<-which(!is.na(yb2.tmp[yindx]) & !is.na(yb1.tmp[yindx]))
           if (length(aux)>0) yb[yindx][aux]<-yb[yindx][aux]+(yb2.tmp[yindx][aux]-yb1.tmp[yindx][aux])
           if (n.ya.eve[n]>0) {
-            yb2.tmp[ya.indx]<-extract(r.aux.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
+            yb1.tmp[ya.indx]<-extract(r.xb.CG,cbind(VecX[ya.indx],VecY[ya.indx]))
+            yb2.tmp[ya.indx]<-extract(r.xb.FG,cbind(VecX[ya.indx],VecY[ya.indx]))
             aux<-which(!is.na(yb2.tmp[ya.indx]) & !is.na(yb1.tmp[ya.indx]))
             if (length(aux)>0) yb[ya.indx][aux]<-yb[ya.indx][aux]+(yb2.tmp[ya.indx][aux]-yb1.tmp[ya.indx][aux])
           }
-          #
-          r.xidi.FG<-resample(r.xidi.CG,r.xidi.FG,method="bilinear")
-          r.xidi.FG<-extend(r.xidi.FG,r.orog.FG)
-          xidi.FG[xindx.eve.FG]<-getValues(r.xidi.FG)[mask.FG[xindx.eve.FG]]
-          xidi.FG[xindx.eve.FG][is.na(xidi.FG[xindx.eve.FG])]<-0
-        }
-      }
-      #
+        } # CG to FG end
+      } # Dh.test>Dh.seq.ref endif
+      # initialization for cycle on Dz
       D.test.part<-exp(-0.5*(Disth[yindx,yindx]/Dh.test)**2.)
       J<-1000000
       if (Dh.test>=(5*Dh.seq.ref)) Dz.seq<-c(10000)
@@ -1762,9 +1828,9 @@ while (L.yo.ok>0) {
           yo.n.tmp[yindx]<-yo[yindx]
       }
 #     + cycle on vertical decorrelation length scales
-      print("cycle on vertical decorrelation length scales")
+#      print("cycle on vertical decorrelation length scales")
       for (Dz.test in Dz.seq) {
-        # compute superobservations according to decorrelation lenght-scales
+        # superobservations according to decorrelation lenght-scales
         if (n.iter!=n.Dh.seq) {
           yo.n.tmp<-vector(mode="numeric",length=L.y.tot)
           for (b in yindx) {
@@ -1796,8 +1862,8 @@ while (L.yo.ok>0) {
           W<-W.test
           Dz.choice<-Dz.test
 # + ya! analysis at station locations
-          ya[yindx]<-ya.tmp[yindx] * y.bweight[yindx]
-          aux<-which(ya[yindx]<rr.inf & y.bweight[yindx]>=0.9)
+          ya[yindx]<-ya.tmp[yindx] * y.bwgt[yindx]
+          aux<-which(ya[yindx]<rr.inf & y.bwgt[yindx]>=0.9)
           if (length(aux)>0) ya[yindx][aux]<-rr.inf
           aux<-which(ya[yindx]<0 | is.na(ya[yindx]))
           if (length(aux)>0) ya[yindx][aux]<-0
@@ -1810,12 +1876,12 @@ while (L.yo.ok>0) {
       } # end cycle on vertical decorrelation lenght scales
       print(paste("Dh=",Dh.test,"Km ==> Dz=",Dz.choice,"m"))
       rm(D.test.part,D.test,S.test,InvD.test,W.test)
-      t.d<-t(yo.n[yindx]-yb[yindx])
-      uno<-t(rep(1,length(yo.n[yindx])))
+#      t.d<-t(yo.n[yindx]-yb[yindx])
+#      uno<-t(rep(1,length(yo.n[yindx])))
 # optimization: if innovation is very close to zero go to next iteration
 #      if ( !(any(abs(t.d)>0.01)) & n.iter!=n.Dh.seq) next
 #     + CrossValidated-analysis 
-      print("CrossValidated-analysis...NO")
+#      print("CrossValidated-analysis")
 #      i<-0
 #      for (b in yindx) {
 #        i<-i+1
@@ -1823,18 +1889,18 @@ while (L.yo.ok>0) {
 #        W.1<-tcrossprod(S[,-i],t(InvD.1))
 #        aux<-t(yo.n[yindx[-i]]-ybv.mat[yindx[-i],b])
 #        ya.tmp[yindx]<-ybv.mat[yindx,b]+tcrossprod(W.1,aux)
-#        ya.tmp[yindx]<-ya.tmp[yindx] * y.bweight[yindx]
-#        aux<-which(ya.tmp[yindx]<rr.inf & y.bweight[yindx]>=0.9)
+#        ya.tmp[yindx]<-ya.tmp[yindx] * y.bwgt[yindx]
+#        aux<-which(ya.tmp[yindx]<rr.inf & y.bwgt[yindx]>=0.9)
 #        if (length(aux)>0) ya.tmp[yindx][aux]<-rr.inf
 #        aux<-which(ya.tmp[yindx]<0 | is.na(ya.tmp[yindx]))
 #        if (length(aux)>0) ya.tmp[yindx][aux]<-0
 #        yav[yindx[i]]<-ya.tmp[yindx[i]]
 #        ybv.mat[yindx,b]<-ya.tmp[yindx]
 #      }
-      yav[yindx]<-ya[yindx]
+      yav[yindx]<-NA
 #      rm(W.1,InvD.1,D,W,S,aux)
 #     + Analysis on other station points within the event areas
-      print("Analysis on other station points within the event areas...NO")
+#      print("Analysis on other station points within the event areas")
 #      if (n.ya.eve[n]>0) {
 #        G.ya<-matrix(ncol=n.y.eve[n],nrow=n.ya.eve[n],data=0.)
 #        G.ya<-exp(-0.5*(Disth[ya.indx,yindx]/Dh.test)**2.
@@ -1844,82 +1910,45 @@ while (L.yo.ok>0) {
 #        yidiv.eve[ya.indx]<-yidi.eve[ya.indx]
 #        ya[ya.indx]<-tcrossprod(K,t.d)
 #        ya[ya.indx]<-ya[ya.indx] + yb[ya.indx]
-#        aux<-which(ya[ya.indx]<rr.inf & y.bweight[ya.indx]>=0.9)
+#        aux<-which(ya[ya.indx]<rr.inf & y.bwgt[ya.indx]>=0.9)
 #        if (length(aux)>0) ya[ya.indx][aux]<-rr.inf
 #        aux<-which(ya[ya.indx]<0 | is.na(ya[ya.indx]))
 #        if (length(aux)>0) ya[ya.indx][aux]<-0
 #        yav[ya.indx]<-ya[ya.indx]
 #        rm(K,G.ya)
 #      }
-      yav[ya.indx]<-ya[ya.indx]
+      yav[ya.indx]<-NA
 #     optimization: 
 #     + Dh>ref.value ->analysis on CG; Dh<ref.value ->analysis on FG
 #     + Analysis on CG
       if (Dh.test>Dh.seq.ref) {
-        print("Analysis on CG")
-        G.CG<-exp(-0.5*(aux.CG/Dh.test)**2.-0.5*(auxz.CG/Dz.choice)**2.)
-        K.CG<-tcrossprod(G.CG,InvD)
-        rm(G.CG)
-        # update analysis
-        xa.CG[xindx.eve.CG]<-xb.CG[xindx.eve.CG]+tcrossprod(K.CG,t.d)
-        # smoothing at the borders
-        xa.CG[xindx.eve.CG]<-xa.CG[xindx.eve.CG]*x.bweight.CG[xindx.eve.CG]
-        aux<-which(xa.CG[xindx.eve.CG]<rr.inf &
-                   x.bweight.CG[xindx.eve.CG]>=0.9)
-        if (length(aux)>0) xa.CG[xindx.eve.CG][aux]<-rr.inf
-        aux<-which(xa.CG[xindx.eve.CG]<0 | is.na(xa.CG[xindx.eve.CG]))
-        if (length(aux)>0) xa.CG[xindx.eve.CG][aux]<-0
-        # update IDI (which is cumulative)
-        xidi.CG[xindx.eve.CG]<-xidi.CG[xindx.eve.CG]+rowSums(K.CG)
-        rm(K.CG)
+#        print("Analysis on CG")
+        oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
+                    xb.sel=xb.CG[xindx.eve.CG],
+                    xgrid.sel=xgrid.CG[xindx.eve.CG],ygrid.sel=ygrid.CG[xindx.eve.CG],zgrid.sel=zgrid.CG[xindx.eve.CG],
+                    VecX.sel=VecX[yindx],VecY.sel=VecY[yindx],VecZ.sel=VecZ[yindx],
+                    x.bwgt.sel=x.bwgt.CG[xindx.eve.CG],xinf=rr.inf,
+                    Dh.cur=Dh.test,Dz.cur=Dz.choice) 
+        xa.CG[xindx.eve.CG]<-oi$xa
+        xidi.CG[xindx.eve.CG]<-xidi.CG[xindx.eve.CG]+oi$xidi
+        rm(oi)
         # next background is the current analysis, only a little bit smoothed
         # smoothing is for realistic border effects
         xb.CG[]<-NA
         xb.CG[xindx.eve.CG]<-xa.CG[xindx.eve.CG]
-        print("end Analysis on CG")
       } else { 
 #     + Analysis on FG
-        print("Analysis on FG")
-        # analysis on FG is done iteratively (save memory)
-        i<-0
-        Inv.d<-tcrossprod(InvD,t.d)
-        Inv.1<-rowSums(InvD)
-        weight.min.a<-0.0005
-        while ((i*ndim.FG.iteration)<=Lgrid.eve.FG) {
-          start<-min( i*ndim.FG.iteration+1, Lgrid.eve.FG)
-          end<-min( (i+1)*ndim.FG.iteration, Lgrid.eve.FG)
-          ndimaux.FG<-end-start+1
-          print(paste("start end ndimaux.FG",start,end,ndimaux.FG,Lgrid.eve.FG))
-          pos<-xindx.eve.FG[start:end]
-          aux.FG<-matrix(ncol=n.y.eve[n],nrow=ndimaux.FG,data=0.)
-          auxz.FG<-matrix(ncol=n.y.eve[n],nrow=ndimaux.FG,data=0.)
-          aux.FG<-(outer(ygrid[pos],VecY[yindx],FUN="-")**2. +
-                outer(xgrid[pos],VecX[yindx],FUN="-")**2.)**0.5/1000.
-          auxz.FG<-abs(outer(zgrid[pos],VecZ[yindx],FUN="-"))
-          G.FG<-matrix(ncol=n.y.eve[n],nrow=ndimaux.FG,data=0.)
-          G.FG<-exp(-0.5*(aux.FG/Dh.test)**2.-0.5*(auxz.FG/Dz.choice)**2.)
-          rm(aux.FG,auxz.FG)
-          Gmax.stn<-apply(G.FG,MARGIN=2,FUN=max)
-          indx.sgnf<-which(Gmax.stn>weight.min.a)
-          if (length(indx.sgnf)==0) {
-            dxa<-rep(0,ndimaux.FG)
-            dxidi<-rep(0,ndimaux.FG)
-          } else {
-            dxa<-tcrossprod(G.FG[,indx.sgnf],t(Inv.d[indx.sgnf]))
-            dxidi<-tcrossprod(G.FG[,indx.sgnf],t(Inv.1[indx.sgnf]))
-          }
-          rm(G.FG)
-          # smoothing at the borders
-          xa.FG[pos]<-(xb.FG[pos]+dxa)*x.bweight.FG[pos]
-          xidi.FG[pos]<-xidi.FG[pos]+dxidi
-          aux<-which(xa.FG[pos]<rr.inf &
-                     x.bweight.FG[pos]>=0.9)
-          if (length(aux)>0) xa.FG[pos][aux]<-rr.inf
-          aux<-which(xa.FG[pos]<0 | is.na(xa.FG[pos]))
-          if (length(aux)>0) xa.FG[pos][aux]<-0
-          i<-i+1
-        }
-        print("end Analysis on FG")
+#        print("Analysis on FG")
+        oi<-OI_fast(yo.sel=yo.n[yindx],yb.sel=yb[yindx],
+                    xb.sel=xb.FG[xindx.eve.FG],
+                    xgrid.sel=xgrid[xindx.eve.FG],ygrid.sel=ygrid[xindx.eve.FG],zgrid.sel=zgrid[xindx.eve.FG],
+                    VecX.sel=VecX[yindx],VecY.sel=VecY[yindx],VecZ.sel=VecZ[yindx],
+                    x.bwgt.sel=x.bwgt.FG[xindx.eve.FG],xinf=rr.inf,
+                    Dh.cur=Dh.test,Dz.cur=Dz.choice) 
+        xa.FG[xindx.eve.FG]<-oi$xa
+        xidi.FG[xindx.eve.FG]<-xidi.FG[xindx.eve.FG]+oi$xidi
+        rm(oi)
+#        print("end Analysis on FG")
         # current analysis is next iteration background
         xb.FG[]<-NA
         xb.FG[xindx.eve.FG]<-xa.FG[xindx.eve.FG]
@@ -1928,7 +1957,6 @@ while (L.yo.ok>0) {
       yb[yindx]<-ya[yindx]
       yb[ya.indx]<-ya[ya.indx]
     } # end cycle on horizontal decorrelation lenght scales
-    if (exists("K.CG")) rm(K.CG,G.CG)
     #
     idi.norm.fac[n]<-max(xidi.FG[xindx.eve.FG],yidi.eve[yindx],yidiv.eve[yindx])
     xidi.FG[xindx.eve.FG]<-xidi.FG[xindx.eve.FG]/idi.norm.fac[n]
@@ -1988,8 +2016,8 @@ while (L.yo.ok>0) {
       meanidiv.y.eve.q75[n]<-NA
     }
   } # END CYCLE over events
-  if (exists("r.xb.CG")) rm(r.xidi.CG,r.xb.CG,xidi.CG,xa.CG,xindx.eve.CG,r.aux.CG,xb.CG)
-  if (exists("r.xb.FG")) rm(r.xidi.FG,r.xb.FG,r.aux.FG)
+  if (exists("r.xb.CG")) rm(r.xb.CG)
+  if (exists("r.xb.FG")) rm(r.xb.FG)
   break
 } # end of DQC loop
 #

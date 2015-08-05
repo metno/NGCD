@@ -102,7 +102,7 @@ getStationMetadata<-function(from.year,to.year,max.Km)
 }
 
 # get station metadata for NGCD
-getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var)
+getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var,path)
 # interaction with KDVH using ULRIC
 # from/to format => yyyy 
 {
@@ -119,8 +119,8 @@ getStationMetadata_NGCD<-function(from.year,to.year,max.Km,var)
   lon.mx<-34.5
 #------------------------------------------------------------------------------
 # Read Station Information 
-  if (var=="TEMP1d") myurl <- paste("/home/cristianl/NGCD_dataset/station_metadata/station_metadata_TG.txt")
-  if (var=="PREC1d") myurl <- paste("/home/cristianl/NGCD_dataset/station_metadata/station_metadata_RR.txt")
+  if (var=="TEMP1d") myurl <- paste(path,"/NGCD_dataset/station_metadata/station_metadata_TG.txt",sep="")
+  if (var=="PREC1d") myurl <- paste(path,"/NGCD_dataset/station_metadata/station_metadata_RR.txt",sep="")
   o.cont<-1
   while (o.cont<=10) {
     stataux<-NULL
@@ -538,10 +538,10 @@ getStationData<-function(var=NULL, from.dd, from.mm, from.yyyy, from.hh=NULL,
 }
 
 # get station data from file 
-getStationData_NGCD<-function(var=NULL, yyyy, mm, dd, statlist )
+getStationData_NGCD<-function(var=NULL, yyyy, mm, dd, statlist,path )
 {
-  if (var=="TEMP1d") filename<-paste("/home/cristianl/NGCD_dataset/data/TG/",yyyy,"/",mm,"/TGNGCD_",yyyy,mm,dd,".txt",sep="")
-  if (var=="PREC1d") filename<-paste("/home/cristianl/NGCD_dataset/data/RR/",yyyy,"/",mm,"/RRNGCD_",yyyy,mm,dd,".txt",sep="")
+  if (var=="TEMP1d") filename<-paste(path,"/NGCD_dataset/data/TG/",yyyy,"/",mm,"/TGNGCD_",yyyy,mm,dd,".txt",sep="")
+  if (var=="PREC1d") filename<-paste(path,"/NGCD_dataset/data/RR/",yyyy,"/",mm,"/RRNGCD_",yyyy,mm,dd,".txt",sep="")
 #  id,value,dqcflag
   try(o <- read.csv(filename, header = TRUE,  sep = ",",
                     stringsAsFactors = FALSE, fileEncoding = "ISO-8859-1",
