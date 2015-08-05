@@ -284,7 +284,7 @@ function(
    if (grid.type == "laea") {  
      #  - case for Norwegian UTM zone 33 grid  ------------------------
      grid.mapping <- "Lambert_Azimuthal_Equal_Area"
-     grid.mapping.name <- "Lambert Azimuthal Equal Area"
+     grid.mapping.name <- "lambert_azimuthal_equal_area"
      xx <- dim.def.ncdf("X","meters",x)
      yy <- dim.def.ncdf("Y","meters",y)
      atts.gmv <- list(list("grid_mapping_name", grid.mapping.name, "text"),
