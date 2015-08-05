@@ -249,8 +249,6 @@ OI_fast<-function(yo.sel,yb.sel,xb.sel,
   xa.sel[]<-0
   xidi.sel[]<-0
   d<-yo.sel-yb.sel
-  t.d<-t(d)
-  a<-tcrossprod(InvD,t.d)
   out<-.C("oi_first",no=as.integer(no), 
                      innov=as.double(d),
                      SRinv=as.numeric(InvD),

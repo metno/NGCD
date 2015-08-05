@@ -29,6 +29,69 @@ error_exit<-function(str=NULL) {
   if (!is.null(str)) print(str)
   quit(status=1)
 }
+
+OI_xb_fast<-function(b.param,
+                     xgrid.sel,ygrid.sel,zgrid.sel,
+                     VecX.sel,VecY.sel,VecZ.sel,
+                     Dh.cur,Dz.cur) {
+  no<-length(VecX.sel)
+  ng<-length(xgrid.sel)
+  vec1<-vector(mode="numeric",length=no)
+  xb.sel<-vector(mode="numeric",length=ng)
+  xidi.sel<-vector(mode="numeric",length=ng)
+  xb.sel[]<-0
+  xidi.sel[]<-0
+  vec1[]<-rowSums(InvD.b)
+  na1<-(-9999.)
+  b.param[which(is.na(b.param))]<-na1
+  out<-.C("oi_xb_fast",ng=as.integer(ng),no=as.integer(no),
+                       xg=as.double(xgrid.sel),yg=as.double(ygrid.sel),zg=as.double(zgrid.sel),
+                       xo=as.double(VecX.sel),yo=as.double(VecY.sel),zo=as.double(VecZ.sel),
+                       Dh=as.double(Dh.cur),Dz=as.double(Dz.cur),
+                       vec1=as.double(vec1),
+                       bparam=as.double(b.param),
+                       xb=as.double(xb.sel),
+                       xidi=as.double(xidi.sel) )
+  xb.sel[1:ng]<-out$xb[1:ng]
+  xidi.sel[1:ng]<-out$xidi[1:ng]
+  rm(out)
+  return(list(xb=xb.sel,xidi=xidi.sel))
+}
+
+
+OI_fast<-function(yo.sel,yb.sel,xb.sel,
+                  xgrid.sel,ygrid.sel,zgrid.sel,
+                  VecX.sel,VecY.sel,VecZ.sel,
+                  Dh.cur,Dz.cur) {
+  no<-length(yo.sel)
+  ng<-length(xb.sel)
+  xa.sel<-vector(mode="numeric",length=ng)
+  xidi.sel<-vector(mode="numeric",length=ng)
+  vec<-vector(mode="numeric",length=no)
+  vec1<-vector(mode="numeric",length=no)
+  xa.sel[]<-0
+  xidi.sel[]<-0
+  d<-yo.sel-yb.sel
+  out<-.C("oi_first",no=as.integer(no), 
+                     innov=as.double(d),
+                     SRinv=as.numeric(InvD),
+                     vec=as.double(vec), vec1=as.double(vec1) )
+  vec[1:no]<-out$vec[1:no]
+  vec1[1:no]<-out$vec1[1:no]
+  rm(out)
+  out<-.C("oi_fast",ng=as.integer(ng),no=as.integer(no),
+                    xg=as.double(xgrid.sel),yg=as.double(ygrid.sel),zg=as.double(zgrid.sel),
+                    xo=as.double(VecX.sel),yo=as.double(VecY.sel),zo=as.double(VecZ.sel),
+                    Dh=as.double(Dh.cur),Dz=as.double(Dz.cur),
+                    xb=as.double(xb.sel),
+                    vec=as.double(vec),vec1=as.double(vec1),
+                    xa=as.double(xa.sel),xidi=as.double(xidi.sel) )
+  xa.sel[1:ng]<-out$xa[1:ng]
+  xidi.sel[1:ng]<-out$xidi[1:ng]
+  rm(out)
+  return(list(xa=xa.sel,xidi=xidi.sel))
+}
+
 #-------------------------------------------------------------------
 # CRS strings
 proj4.wgs84<-"+proj=longlat +datum=WGS84"
@@ -49,6 +112,7 @@ z.range.min<-50
 nstat.min<-5
 nstat.min.inv<-20
 Dh.b<-70.
+Dz.b<-100000.
 eps2.b<-0.5
 Lsubsample<-50
 Lsubsample.max<-50
@@ -108,6 +172,10 @@ source(paste(path2lib.com,"/nogrid.ncout.R",sep=""))
 source(paste(path2lib.com,"/ncout.spec.list.r",sep=""))
 source(paste(path2lib.com,"/getStationData.R",sep=""))
 source(paste(path2lib.com,"/Bspat_PseudoBackground.R",sep=""))
+# load external C functions
+dyn.load(paste(main.path,"/Bspat_TEMP1d/src/oi_first.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_TEMP1d/src/oi_fast.so",sep=""))
+dyn.load(paste(main.path,"/Bspat_TEMP1d/src/oi_xb_fast.so",sep=""))
 # test mode
 print(testmode)
 if (testmode) {
@@ -249,7 +317,7 @@ rm(xy,rc,rowgrid,colgrid,cells,aux,stackGeoGrid)
 #    obtained from lat,lon. Furthermore, the location must be in Norway or on
 #    the border (less than max.Km.stnINdomain)
 # 2. stations in CG
-stations<-getStationMetadata_NGCD(from.year=yyyy,to.year=yyyy,
+stations<-getStationMetadata_NGCD(from.year=yyyy,to.year=yyyy,path=main.path.output,
                                   max.Km=max.Km.stnINdomain,var="TEMP1d")
 LOBS<-length(stations$stnr)
 print(LOBS)
@@ -314,7 +382,7 @@ r <-raster(ncol=nx, nrow=ny, xmn=xmn, xmx=xmx, ymn=ymn, ymx=ymx,
             crs=proj4.ETRS_LAEA)
 r[]<-NA
 # get data 
-data<-getStationData_NGCD(var="TEMP1d", yyyy=yyyy, mm=mm, dd=dd, statlist=stations)
+data<-getStationData_NGCD(var="TEMP1d", yyyy=yyyy, mm=mm, dd=dd, statlist=stations,path=main.path.output)
 yo<-as.numeric(data$value)
 yo.h.pos<-which(!is.na(yo))
 # BACKGROUND AT STATION LOCATIONS
@@ -816,195 +884,49 @@ print(paste(">>>>Total number of observations [not NA & good] =",LOBStOK))
 #------------------------------------------------------------------------------
 # Grid - Background
 xb<-vector(mode="numeric",length=Lgrid)
-xb.set<-matrix(data=0,ncol=LBAKh,nrow=Lgrid)
-xbweights.set<-matrix(data=NA,ncol=LBAKh,nrow=Lgrid)
+xb.tmp<-vector(mode="numeric",length=Lgrid)
+xidi.tmp<-vector(mode="numeric",length=Lgrid)
+xidi.norm<-vector(mode="numeric",length=Lgrid)
+xb[]<-0
+xb.tmp[]<-0
+xidi.tmp[]<-0
+xidi.norm[]<-0
 b.aux<-0
 print("++ Grid - Background elaborations\n")
-print("#/tot stnid #grid.points/#grid.points.tot")
 for (b in yb.h.pos) {
   b.aux<-b.aux+1
-  xindx<-which( (xgrid-min(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-cutoff.par*Dh.b*1000) & 
-                (xgrid-max(VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<( cutoff.par*Dh.b*1000) &
-                (ygrid-min(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))>(-cutoff.par*Dh.b*1000) & 
-                (ygrid-max(VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]]))<( cutoff.par*Dh.b*1000) )
-  Lgrid.b<-length(xindx)
-  if (Lgrid.b==0) {
-    xb.set[,b.aux]<-0
-    xbweights.set[,b.aux]<-0.
-    next
-  }
+  print(b.aux)
   ide.b<-matrix(data=0,ncol=Lsubsample.vec[b],nrow=Lsubsample.vec[b])
   ide.b[row(ide.b)==col(ide.b)]<-1
   InvD.b<-solve(D.b[VecS.set.pos[b,1:Lsubsample.vec[b]],VecS.set.pos[b,1:Lsubsample.vec[b]]],ide.b)
-#
-  xbweights.set[,b.aux]<-0
-  ndim<-10000
-  i<-0
-  while ((i*ndim)<Lgrid.b) {
-    start<-i*ndim+1
-    end<-(i+1)*ndim
-    if (end>Lgrid.b) {
-      end<-Lgrid.b
-    }
-    ndimaux<-end-start+1
-#    print(paste(round(i),round(start,0),round(end,0),round(Lgrid,0)))
-    aux<-matrix(ncol=Lsubsample.vec[b],nrow=ndimaux,data=0.)
-    G.b<-matrix(ncol=Lsubsample.vec[b],nrow=ndimaux,data=0.)
-    aux<-(outer(ygrid[xindx[start:end]],VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2. +
-          outer(xgrid[xindx[start:end]],VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2.)**0.5/1000.
-    G.b<-exp(-0.5*(aux/Dh)**2.)
-    rm(aux)
-    K.b<-tcrossprod(G.b,InvD.b)
-    rm(G.b)
-    xbweights.set[xindx[start:end],b.aux]<-rowSums(K.b)
-    rm(K.b)
-    i<-i+1
-  }
-## G matrix
-#  Disth.b<-matrix(ncol=Lsubsample.vec[b],nrow=Lgrid.b,data=0.)
-#  G.b<-matrix(ncol=Lsubsample.vec[b],nrow=Lgrid.b,data=0.)
-#  Disth.b<-(outer(ygrid[xindx],VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2.+
-#            outer(xgrid[xindx],VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]],FUN="-")**2.)**0.5/1000.
-#  G.b<-exp(-0.5*(Disth.b/Dh.b)**2.)
-#  rm(Disth.b)
-##  compute analysis/idi over grid 
-#  K.b<-tcrossprod(G.b,InvD.b)
-#  xbweights.set[,b.aux]<-0
-#  xbweights.set[xindx,b.aux]<-rowSums(K.b)
-  xindx1<-which(xbweights.set[,b.aux]>weight.min.b)
-  Lgrid.b1<-length(xindx1)
-  print(paste(b.aux,"/",LBAKh," ",VecS[b]," ",Lgrid.b,"-->",Lgrid.b1,"/",Lgrid,"\n",sep=""))
-#  rm(G.b,K.b)
-  if (yb.param[b,12]==0) {
-    # 1.mean(z)[m];2.NA;3.mean(yo)[C];4.gamma[C/m];5.NA
-    # 6. alpha[C/m];7.NA;8.Beta[C/m];9NA
-    xb.set[xindx1,b.aux]<-yb.param[b,3]+ yb.param[b,6]*(xgrid[xindx1]-yb.param[b,10])+
-                                        yb.param[b,8]*(ygrid[xindx1]-yb.param[b,11])+
-                                        yb.param[b,4]* zgrid[xindx1]
-  }
-  if (yb.param[b,12]==1) {
-    # 1.zinv[m];2.dz[m];3.Tinv[C];4.gammaAbove[C/m];5.gammaBelow[C]
-    # 6. alphaAbove[C/m];7.AlphaBelow[C/m];8.BetaAbove[C/m];9BetaBelow[C/m]
-    zinv<-yb.param[b,1]
-    zabov<-zinv+yb.param[b,2]
-    zbelo<-zinv-yb.param[b,2]
-    bfabov<-yb.param[b,3]+ yb.param[b,6]*(xgrid[xindx1]-yb.param[b,10])+
-                           yb.param[b,8]*(ygrid[xindx1]-yb.param[b,11])+
-                           yb.param[b,4]*(zgrid[xindx1]-zinv)
-    bfbelo<-yb.param[b,3]+ yb.param[b,7]*(xgrid[xindx1]-yb.param[b,10])+
-                           yb.param[b,9]*(ygrid[xindx1]-yb.param[b,11])+ 
-                           yb.param[b,5]*(zgrid[xindx1]-zinv)
-    aux.ab<-which(zgrid[xindx1]>zabov)
-    aux.bl<-which(zgrid[xindx1]<=zbelo)
-    aux.bw<-which((zgrid[xindx1]>zbelo)&(zgrid[xindx1]<=zabov))
-    xb.set[xindx1[aux.ab],b.aux]<-bfabov[aux.ab]
-    xb.set[xindx1[aux.bl],b.aux]<-bfbelo[aux.bl]
-    xb.set[xindx1[aux.bw],b.aux]<-(bfabov[aux.bw]*(zgrid[xindx1[aux.bw]]-zbelo) + bfbelo[aux.bw]*(zabov-zgrid[xindx1[aux.bw]]) ) / (zabov-zbelo)
-    rm(aux.ab,aux.bl,aux.bw)
-  }
-  if (yb.param[b,12]==2) {
-# 1.h0[m];2.h1-h0[m];3.T0[C];4.gamma[C/m];5.a[C]
-# 6. alphaAbove[C/m];7.AlphaBelow[C/m];8.BetaAbove[C/m];9BetaBelow[C/m]
-    h0<-yb.param[b,1]
-    h1<-yb.param[b,1]+yb.param[b,2]
-    aux.ab<-which(zgrid[xindx1]>=h1)
-    aux.bl<-which(zgrid[xindx1]<=h0)
-    aux.bw<-which((zgrid[xindx1]>h0) & (zgrid[xindx1]<h1))
-    xb.set[xindx1[aux.ab],b.aux]<-yb.param[b,3] + 
-                             yb.param[b,4]* zgrid[xindx1[aux.ab]] + 
-                             yb.param[b,6]*(xgrid[xindx1[aux.ab]]-yb.param[b,10]) + 
-                             yb.param[b,8]*(ygrid[xindx1[aux.ab]]-yb.param[b,11])
-    xb.set[xindx1[aux.bl],b.aux]<-yb.param[b,3] + 
-                             yb.param[b,4]*zgrid[xindx1[aux.bl]] - 
-                             yb.param[b,5] +
-                             yb.param[b,7]*(xgrid[xindx1[aux.bl]]-yb.param[b,10]) + 
-                             yb.param[b,9]*(ygrid[xindx1[aux.bl]]-yb.param[b,11])
-    xb.set[xindx1[aux.bw],b.aux]<-yb.param[b,3] +
-                             yb.param[b,4]*zgrid[xindx1[aux.bw]] - 
-                             yb.param[b,5]/2.*(1+cos(pi*(zgrid[xindx1[aux.bw]]-h0)/yb.param[b,2])) + 
-     ( (yb.param[b,6]*(xgrid[xindx1[aux.bw]]-yb.param[b,10])+yb.param[b,8]*(ygrid[xindx1[aux.bw]]-yb.param[b,11]))*(zgrid[xindx1[aux.bw]]-h0) + 
-       (yb.param[b,7]*(xgrid[xindx1[aux.bw]]-yb.param[b,10])+yb.param[b,9]*(ygrid[xindx1[aux.bw]]-yb.param[b,11]))*(h1-zgrid[xindx1[aux.bw]]) ) / yb.param[b,2]
-    rm(aux.ab,aux.bl,aux.bw)
-  }
-#  png(file=paste("proX_",VecS[VecS.set.pos[b,1:Lsubsample.vec[b]]],"_",b.aux,".png",sep=""),width=1200,height=1200)
-#  plot(xb.set[xindx1,b.aux],zgrid[xindx1],pch=19,col="black",cex=2.5)
-#  points(yo[VecS.set.pos[b,1:Lsubsample.vec[b]]],VecZ[VecS.set.pos[b,1:Lsubsample.vec[b]]],pch=19,col="red",cex=2.5)
-#  dev.off()
+  oi<-OI_xb_fast(b.param=yb.param[b,1:12],
+                 xgrid.sel=xgrid,ygrid.sel=ygrid,zgrid.sel=zgrid,
+                 VecX.sel=VecX[VecS.set.pos[b,1:Lsubsample.vec[b]]],
+                 VecY.sel=VecY[VecS.set.pos[b,1:Lsubsample.vec[b]]],
+                 VecZ.sel=VecZ[VecS.set.pos[b,1:Lsubsample.vec[b]]],
+                 Dh.cur=Dh.b,Dz.cur=Dz.b)
+  xb.tmp[]<-oi$xb
+  xidi.tmp[]<-oi$xidi
+  rm(oi)
+  xb<-xb+xidi.tmp*xb.tmp
+  xidi.norm<-xidi.norm+xidi.tmp
 }
-xbweights.norm<-xbweights.set/rowSums(xbweights.set)
-# DEBUG start
-#    for (b in 1:length(yb.h.pos)) {
-#      b.pos<-yb.h.pos[b]
-#      xindx<-which( (xgrid-min(VecX[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]]))>(-3*Dh.b*1000) & 
-#                    (xgrid-max(VecX[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]]))<(3*Dh.b*1000) &
-#                    (ygrid-min(VecY[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]]))>(-3*Dh.b*1000) & 
-#                    (ygrid-max(VecY[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]]))<(3*Dh.b*1000) )
-#      r[mask]<-NA
-#      r[mask[xindx]]<-xbweights.norm[xindx,b]
-#      png(file=paste("xb_norm_",VecS[b.pos],".png",sep=""),width=1400,height=1400)
-#      image(r,breaks=seq(0,1,by=0.01),col=rainbow(100))
-#      points(VecX[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]],VecY[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]],pch=19,col="black")
-#      points(VecX[b.pos],VecY[b.pos],pch=print(paste(round(i),round(start,0),round(end,0),round(Lgrid,0)))19,col="black",cex=2)
-#      legend(x="bottomright",legend=seq(0,1,by=0.01),fill=rainbow(100),cex=0.9)
-#      dev.off()
-#      r[mask[xindx]]<-xbweights.set[xindx,b]
-#      png(file=paste("xb_set_",VecS[b.pos],".png",sep=""),width=1400,height=1400)
-#      image(r,breaks=seq(0,1,by=0.01),col=rainbow(100))
-#      points(VecX[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]],VecY[VecS.set.pos[b.pos,1:Lsubsample.vec[b.pos]]],pch=19,col="black")
-#      points(VecX[b.pos],VecY[b.pos],pch=19,col="black",cex=2)
-#      legend(x="bottomright",legend=seq(0,1,by=0.01),fill=rainbow(100),cex=0.9)
-#      dev.off()
-#    }
-# DEBUG end
-#    print(paste(round(rowSums(ybweights.set),9),"\n"))
-for (i in 1:Lgrid) {
-  xb[i]<-tcrossprod(xbweights.norm[i,],t(xb.set[i,]))
-}
-rm(xb.set,xbweights.norm,xbweights.set,xindx,xindx1)
+aux<-which(xidi.norm!=0)
+if (length(aux!=0)) xb[aux]<-xb[aux]/xidi.norm[aux]
+aux<-which(xidi.norm==0)
+if (length(aux!=0)) xb[aux]<-NA
+rm(xb.tmp,xidi.tmp,xidi.norm,aux)
 # Gridded Analysis/IDI    
+oi<-OI_fast(yo.sel=yo[yo.OKh.pos],yb.sel=yb[yo.OKh.pos],
+            xb.sel=xb,
+            xgrid.sel=xgrid,ygrid.sel=ygrid,zgrid.sel=zgrid,
+            VecX.sel=VecX[yo.OKh.pos],VecY.sel=VecY[yo.OKh.pos],VecZ.sel=VecZ[yo.OKh.pos],
+            Dh.cur=Dh,Dz.cur=Dz) 
 xa<-vector(mode="numeric",length=Lgrid)
 xidi<-vector(mode="numeric",length=Lgrid)
-ndim<-10000
-i<-0
-print("++ Grid - Analysis and IDI elaborations\n")
-print("# gridpoint.start gridpoint.end gridpoint.total\n")
-#to.write <- file("aux.bin", "wb")
-#to.read<-file("aux.bin", "rb")
-while ((i*ndim)<Lgrid) {
-  start<-i*ndim+1
-  end<-(i+1)*ndim
-  if (end>Lgrid) {
-    end<-Lgrid
-  }
-  ndimaux<-end-start+1
-  print(paste(round(i),round(start,0),round(end,0),round(Lgrid,0)))
-  aux<-matrix(ncol=LOBStOK,nrow=ndimaux,data=0.)
-  auxz<-matrix(ncol=LOBStOK,nrow=ndimaux,data=0.)
-  G<-matrix(ncol=LOBStOK,nrow=ndimaux,data=0.)
-  aux<-(outer(ygrid[start:end],VecY[yo.OKh.pos],FUN="-")**2. +
-        outer(xgrid[start:end],VecX[yo.OKh.pos],FUN="-")**2.)**0.5/1000.
-#  for (j in 1:Linfo) writeBin(as.numeric(aux[,j]),to.write,size=4)
-#  aux<-matrix(readBin(to.read,numeric(),size=4,ndimaux*Linfo),ndimaux,Linfo)
-# vertical distance
-  auxz<-abs(outer(zgrid[start:end],VecZ[yo.OKh.pos],FUN="-"))
-  G<-exp(-0.5*(aux/Dh)**2.-0.5*(auxz/Dz)**2.)
-  rm(aux,auxz)
-#
-  Gmax.stn<-apply(G,MARGIN=2,FUN=max)
-  indx.sgnf<-which(Gmax.stn>weight.min.a)
-  K<-tcrossprod(G[,indx.sgnf],InvD[indx.sgnf,indx.sgnf])
-  rm(G,Gmax.stn)
-  d.sgnf<-yo[yo.OKh.pos][indx.sgnf]-yb[yo.OKh.pos][indx.sgnf]
-  xa[start:end]<-xb[start:end]+tcrossprod(K,t(d.sgnf))
-#
-#  K<-tcrossprod(G,InvD)
-#  rm(G)
-#  xa[start:end]<-xb[start:end]+tcrossprod(K,t(yo[yo.OKh.pos]-yb[yo.OKh.pos]))
-  xidi[start:end]<-rowSums(K)
-  rm(K,indx.sgnf)
-#  rm(K)
-  i<-i+1
-}
+xa[]<-oi$xa
+xidi[]<-oi$xidi
+rm(oi)
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # output - ANALYSIS
 r[]<-NA
