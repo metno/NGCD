@@ -761,7 +761,7 @@ XYZinv_step1<-function(param,b_x,b_y,b_z,b_yo) {
   z.q20<-quantile(b_z,probs=0.2)
   z.q80<-quantile(b_z,probs=0.8)
   dz.aux<-10
-  if ((z.q80-z.q20)<10) dz.aux<-1
+  if ((z.q80-z.q20)<=par2.def) dz.aux<-1
   if ((z.q80-z.q20)<=1) dz.aux<-(z.q80-z.q20)/2
   if (z.q80==z.q20) {
     param.out<-c(rep(NA,11))
@@ -777,16 +777,17 @@ XYZinv_step1<-function(param,b_x,b_y,b_z,b_yo) {
   if (abs(param[7])>=ABlim)  param[7]<-0 
   if (abs(param[8])>=ABlim)  param[8]<-0 
   if (abs(param[9])>=ABlim)  param[9]<-0 
-#  print(paste("zinv dz tinv gA gB aA aB bA bB:",
-#    round(param[1],1),
-#    round(param[2],0),
-#    round(param[3],1),
-#    round(param[4],6),
-#    round(param[5],6),
-#    round(param[6],6),
-#    round(param[7],6),
-#    round(param[8],6),
-#    round(param[9],6)))
+  print(paste("zinv dz tinv gA gB aA aB bA bB:",
+    round(param[1],1),
+    round(param[2],0),
+    round(param[3],1),
+    round(param[4],6),
+    round(param[5],6),
+    round(param[6],6),
+    round(param[7],6),
+    round(param[8],6),
+    round(param[9],6)))
+  print(paste("z.q20 z.q80 dz.aux",z.q20,z.q80,dz.aux))
 # constrOptim; package:stats
 # The feasible region is defined by ‘ui %*% param - ci >= 0’. The
 # starting value must be in the interior of the feasible region, but
