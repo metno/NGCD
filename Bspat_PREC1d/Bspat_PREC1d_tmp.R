@@ -744,7 +744,7 @@ while (L.yo.ok>0) {
               "\n",sep=";"),file=out.file.stn,append=T)
     # Figures
     r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.ETRS_LAEA)
+                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
     xa.FG<-vector(mode="numeric",length=Lgrid.FG)
     xa.FG[]<-0
     r.aux.FG[mask.FG]<-round(xa.FG,1)
@@ -753,7 +753,7 @@ while (L.yo.ok>0) {
                  x=x.FG,y=y.FG,grid.type=grid.type,
                  times=c(paste(yyyymmdd.b,"0000",sep="")),
                  prod.date=prod.date,
-                 proj4.string=proj4.ETRS_LAEA,
+                 proj4.string=proj4.utm33,
                  var.name=xa.var.name,
                  var.longname=xa.var.longname,
                  var.unit=xa.var.unit,
@@ -768,7 +768,7 @@ while (L.yo.ok>0) {
                  x=x.FG,y=y.FG,grid.type=grid.type,
                  times=c(paste(yyyymmdd.b,"0000",sep="")),
                  prod.date=prod.date,
-                 proj4.string=proj4.ETRS_LAEA,
+                 proj4.string=proj4.utm33,
                  var.name=xidi.var.name,
                  var.longname=xidi.var.longname,
                  var.unit=xidi.var.unit,
@@ -1057,7 +1057,7 @@ while (L.yo.ok>0) {
   }
   rm(Disth.i,close2i)
 ##  r.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-##                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.ETRS_LAEA)
+##                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
 ##  r.CG[]<-NA
 ##  r.CG[mask.CG]<-lab.nor.CG.1st
   print("++ define no-rain areas on the grid.CG: IDI")
@@ -1161,7 +1161,7 @@ while (L.yo.ok>0) {
 # if a dry observation is (1) not included in a dry area and (2) is in Norway then
 # flag it as presumably bad observation and repeat spatial interpolation
   r.CG.nor.dry <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.ETRS_LAEA)
+                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
   r.CG.nor.dry[]<-NA
   r.CG.nor.dry[mask.CG]<-round(x.dry.CG,0)
   stn.nor.dry<-extract(r.CG.nor.dry,cbind(VecX,VecY),na.rm=T)
@@ -1277,7 +1277,7 @@ while (L.yo.ok>0) {
 # if a wet observation is (1) not included in an event and (2) is in Norway then
 # flag it as presumably bad observation and repeat spatial interpolation
   r.CG.eve.wet <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.ETRS_LAEA)
+                        ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
   r.CG.eve.wet[]<-NA
   r.CG.eve.wet[mask.CG]<-round(x.wet.CG,0)
   stn.eve.wet<-extract(r.CG.eve.wet,cbind(VecX,VecY),na.rm=T)
@@ -1344,7 +1344,7 @@ while (L.yo.ok>0) {
   # events including 0 stations are re-labeled
   if (length(eve.nostn.pos)>0) {
     r <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-               ymn=ymn.CG, ymx=ymx.CG, crs=proj4.ETRS_LAEA)
+               ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
     x.aux<-vector(mode="numeric",length=Lgrid.CG)
     for (i in eve.nostn.pos) {
       aux<-which(x.eve.CG==f.lab.val[i])
@@ -1480,7 +1480,7 @@ while (L.yo.ok>0) {
               "\n",sep=";"),file=out.file.stn,append=T)
     # Figures
     r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.ETRS_LAEA)
+                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
     xa.FG<-vector(mode="numeric",length=Lgrid.FG)
     xa.FG[]<-0
     r.aux.FG[mask.FG]<-round(xa.FG,1)
@@ -1489,7 +1489,7 @@ while (L.yo.ok>0) {
              x=x.FG,y=y.FG,grid.type=grid.type,
              times=c(paste(yyyymmdd.b,"0000",sep="")),
              prod.date=prod.date,
-             proj4.string=proj4.ETRS_LAEA,
+             proj4.string=proj4.utm33,
              var.name=xa.var.name,
              var.longname=xa.var.longname,
              var.unit=xa.var.unit,
@@ -1654,9 +1654,9 @@ while (L.yo.ok>0) {
   for (n in 1:n.eve) {
     # initialization
     r.xb.CG <-raster(ncol=nx.CG, nrow=ny.CG, xmn=xmn.CG, xmx=xmx.CG,
-                     ymn=ymn.CG, ymx=ymx.CG, crs=proj4.ETRS_LAEA)
+                     ymn=ymn.CG, ymx=ymx.CG, crs=proj4.utm33)
     r.xb.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                     ymn=ymn.FG, ymx=ymx.FG, crs=proj4.ETRS_LAEA)
+                     ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
     #
     r.xb.CG[]<-NA
     r.xb.FG[]<-NA
@@ -1951,12 +1951,45 @@ while (L.yo.ok>0) {
         xb.FG[]<-NA
         xb.FG[xindx.eve.FG]<-xa.FG[xindx.eve.FG]
       } # end: analysis on FG
+##### DEBUG
+      fout.name.deb.txt<-paste("./scale",
+                               "_n",formatC(n,width=3,flag="0",format="d"),
+                               "_Dh",formatC(Dh.test,width=5,flag="0",format="d"),
+                               "_Dz",formatC(Dz.test,width=5,flag="0",format="d"),".txt",sep="")
+#      cat("stid;x;y;z;yo;yo.n;yb;ya;\n",append=F,file=fout.name.deb.txt)
+#      cat(paste(formatC(VecS[stn.output],format="f",digits=0),
+#                formatC(VecX[stn.output],format="f",digits=0),
+#                formatC(VecY[stn.output],format="f",digits=0),
+#                formatC(VecZ[stn.output],format="f",digits=0),
+#                round(yo[yindx],1),
+#                round(yo.n[yindx],1),
+#                round(yb[yindx],1),
+#                round(ya[yindx],1),"\n",sep=";"),append=T,file=fout.name.deb.txt)
+      cat(paste("year","month","day","nday","stid",
+                "x","y","z","eve.lab","yo",
+                "yb","ya","yav","yidi","yidiv","dqcflag","\n",sep=";"),
+                file=fout.name.deb.txt,append=F)
+      cat(paste(yyyy.b,mm.b,dd.b,nday,
+                formatC(VecS[yindx],format="f",digits=0),
+                formatC(VecX[yindx],format="f",digits=0),
+                formatC(VecY[yindx],format="f",digits=0),
+                formatC(VecZ[yindx],format="f",digits=0),
+                formatC(y.eve[yindx],format="f",digits=0),
+                formatC(yo.n[yindx],format="f",digits=1),
+                formatC(yb[yindx],format="f",digits=2),
+                formatC(ya[yindx],format="f",digits=2),
+                formatC(yav[yindx],format="f",digits=2),
+                formatC(yidi.eve[yindx],format="f",digits=4),
+                formatC(yidiv.eve[yindx],format="f",digits=4),
+                formatC(ydqc.flag[yindx],format="f",digits=0),
+                "\n",sep=";"),file=fout.name.deb.txt,append=T)
+##### DEBUG
       # current analysis is next iteration background
       yb[yindx]<-ya[yindx]
       yb[ya.indx]<-ya[ya.indx]
 ##### maps
 #      r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-#                        ymn=ymn.FG, ymx=ymx.FG, crs=proj4.ETRS_LAEA)
+#                        ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
 #      if (Dh.test>Dh.seq.ref) {
 #        xc<-xa.CG
 #        xf<-xa.FG
@@ -1979,7 +2012,7 @@ while (L.yo.ok>0) {
 #                   x=x.FG,y=y.FG,grid.type=grid.type,
 #                   times=c(paste(yyyymmdd.b,"0000",sep="")),
 #                   prod.date=prod.date,
-#                   proj4.string=proj4.ETRS_LAEA,
+#                   proj4.string=proj4.utm33,
 #                   var.name=xa.var.name,
 #                   var.longname=xa.var.longname,
 #                   var.unit=xa.var.unit,
@@ -2058,7 +2091,7 @@ while (L.yo.ok>0) {
 xa.FG[is.na(xa.FG)]<-0.
 #
 r.aux.FG <-raster(ncol=nx.FG, nrow=ny.FG, xmn=xmn.FG, xmx=xmx.FG,
-                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.ETRS_LAEA)
+                  ymn=ymn.FG, ymx=ymx.FG, crs=proj4.utm33)
 r.aux.FG[]<-NA
 r.aux.FG[mask.FG]<-xa.FG
 #r.aux.FG<-trim(r.aux.FG)
@@ -2132,7 +2165,7 @@ if (xidi.flag.write) {
                x=x.FG,y=y.FG,grid.type=grid.type,
                times=c(paste(yyyymmdd.b,"0000",sep="")),
                prod.date=prod.date,
-               proj4.string=proj4.ETRS_LAEA,
+               proj4.string=proj4.utm33,
                var.name=xidi.var.name,
                var.longname=xidi.var.longname,
                var.unit=xidi.var.unit,
@@ -2151,7 +2184,7 @@ if (xa.flag.write) {
                x=x.FG,y=y.FG,grid.type=grid.type,
                times=c(paste(yyyymmdd.b,"0000",sep="")),
                prod.date=prod.date,
-               proj4.string=proj4.ETRS_LAEA,
+               proj4.string=proj4.utm33,
                var.name=xa.var.name,
                var.longname=xa.var.longname,
                var.unit=xa.var.unit,

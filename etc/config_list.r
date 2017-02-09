@@ -18,5 +18,12 @@ config_list <- alist(
                        main.path="/home/cristianl/projects/NGCD",
                        main.path.output="/home/cristianl",
                        testmode=FALSE)
+         ),
+
+     list( pname="vis-m1-arch",
+           opt = alist(
+                       main.path="/home/cristianl/projects/NGCD",
+                       main.path.output="/lustre/storeB/users/cristianl",
+                       testmode=FALSE)
          )
      )
