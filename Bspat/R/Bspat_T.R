@@ -211,9 +211,9 @@ source(paste(path2utl.com,"/nc4out.R",sep=""))
 source(paste(path2utl.com,"/OI_T_fast.R",sep=""))
 source(paste(path2utl.com,"/OI_T_xb_fast.R",sep=""))
 # load external C functions
-dyn.load(paste(argv$so.path,"/oi_first.so",sep=""))
-dyn.load(paste(argv$so.path,"/oi_fast.so",sep=""))
-dyn.load(paste(argv$so.path,"/oi_xb_fast.so",sep=""))
+dyn.load(paste(argv$so.path,"/oi_t_first.so",sep=""))
+dyn.load(paste(argv$so.path,"/oi_t_fast.so",sep=""))
+dyn.load(paste(argv$so.path,"/oi_t_xb_fast.so",sep=""))
 #
 # set Time-related variables
 Rdate <- strptime(argv$date,"%Y.%m.%d")
@@ -365,7 +365,8 @@ for (b in yo.h.pos) {
   #      a pre-def threshold then b is not a good candidate 
   if (aux<argv$nstat.min) next
   # ==> b has been chosen as a centroid station <==
-  print("+-------------------------------------------------------------------")
+  if (argv$verbose) 
+    print("+-------------------------------------------------------------------")
   # B. compute the background for the subdomain having b as centroid
   Lsubsample.vec[b]<-aux
   close2b<-close2b.au1[1:Lsubsample.vec[b]]
@@ -529,37 +530,39 @@ for (b in yo.h.pos) {
 #  dev.off()
 # DEBUG end
 # DEBUG start
-  zero.str<-"0."
-  uno.str<-"1."
-  due.str<-"2."
-  if (best==0) zero.str<-"+0."
-  if (best==1) uno.str<-"+1."
-  if (best==2) due.str<-"+2."
-  print(paste("@@",b.inc,
-              ". id pos Zmn/x (Zrange) [Z.q90-Z.q10] ",
-              "DisthMAX / J0 J1 J2 / #stn:",
-              VecS[b],
-              b,
-              round(min(VecZ.b),0),
-              round(max(VecZ.b),0),
-              paste("(",z.range,")",sep=""),
-              paste("[",z.range.90,"]",sep=""),
-              round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
-              round(J0,0),round(J1,0),round(J2,0),"/",
-              Lsubsample.vec[b]))
-  print(paste(zero.str,
-              "alpha beta gamma:",
-               round(yb.param0[6],6),
-               round(yb.param0[8],6),
-               round(yb.param0[4],4)))
-  print(paste(uno.str,"zinv dz tinv aA aB bA bB ga gb:",
-        round(yb.param1[1],1), round(yb.param1[2],0), round(yb.param1[3],1),
-        round(yb.param1[6],6), round(yb.param1[7],6), round(yb.param1[8],6),
-        round(yb.param1[9],6), round(yb.param1[4],4), round(yb.param1[5],4)))
-  print(paste(due.str,"h0 h1-h0 t0 a aA aB bA bB gamma:",
-        round(yb.param2[1],1), round(yb.param2[2],0), round(yb.param2[3],1),
-        round(yb.param2[5],6), round(yb.param2[6],6), round(yb.param2[7],6),
-        round(yb.param2[8],6), round(yb.param2[9],6), round(yb.param2[4],4)))
+  if (argv$verbose) {
+    zero.str<-"0."
+    uno.str<-"1."
+    due.str<-"2."
+    if (best==0) zero.str<-"+0."
+    if (best==1) uno.str<-"+1."
+    if (best==2) due.str<-"+2."
+    print(paste("@@",b.inc,
+                ". id pos Zmn/x (Zrange) [Z.q90-Z.q10] ",
+                "DisthMAX / J0 J1 J2 / #stn:",
+                VecS[b],
+                b,
+                round(min(VecZ.b),0),
+                round(max(VecZ.b),0),
+                paste("(",z.range,")",sep=""),
+                paste("[",z.range.90,"]",sep=""),
+                round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
+                round(J0,0),round(J1,0),round(J2,0),"/",
+                Lsubsample.vec[b]))
+    print(paste(zero.str,
+                "alpha beta gamma:",
+                 round(yb.param0[6],6),
+                 round(yb.param0[8],6),
+                 round(yb.param0[4],4)))
+    print(paste(uno.str,"zinv dz tinv aA aB bA bB ga gb:",
+          round(yb.param1[1],1), round(yb.param1[2],0), round(yb.param1[3],1),
+          round(yb.param1[6],6), round(yb.param1[7],6), round(yb.param1[8],6),
+          round(yb.param1[9],6), round(yb.param1[4],4), round(yb.param1[5],4)))
+    print(paste(due.str,"h0 h1-h0 t0 a aA aB bA bB gamma:",
+          round(yb.param2[1],1), round(yb.param2[2],0), round(yb.param2[3],1),
+          round(yb.param2[5],6), round(yb.param2[6],6), round(yb.param2[7],6),
+          round(yb.param2[8],6), round(yb.param2[9],6), round(yb.param2[4],4)))
+  }
 # DEBUG stop
 # B5. compute weights used to blend the local backgrounds into a global one
   G<-exp(-0.5*(Disth[,close2b]/argv$Dh.b)**2.)
@@ -627,8 +630,9 @@ safe.cont<-0
 safe.limit<-100000
 while (safe.cont<safe.limit) {
   safe.cont<-safe.cont+1
-  print(paste(">> Total number of observations [not NA & not ERR(so far)] =",
-              LOBStOK))
+  if (argv$verbose) 
+    print(paste(">> Total number of observations [not NA & not ERR(so far)] =",
+                LOBStOK))
   # In case of a rejected station, re-compute those local backgrounds that
   #  include the rejected stations
   if (!is.na(yoBad.id)) {
@@ -778,31 +782,33 @@ while (safe.cont<safe.limit) {
           yb.param[b,]<-c(yb.param2,2)
         }
         # DEBUG start
-        zero.str<-"0."
-        uno.str<-"1."
-        due.str<-"2."
-        if (best==0) zero.str<-"*0."
-        if (best==1) uno.str<-"*1."
-        if (best==2) due.str<-"*2."
-        print(paste("@@",isct,
-                    ". id pos Zmn/x (Zrange) [Z.q90-Z.q10] ",
-                    "DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
-                    round(min(VecZ.b),0),round(max(VecZ.b),0),
-                    paste("(",z.range,")",sep=""),
-                    paste("[",z.range.90,"]",sep=""),
-                    round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
-                    round(J0,0),round(J1,0),round(J2,0),"/",Lsubsample.vec[b]))
-        print(paste(zero.str,"alpha beta gamma:",
-                    round(yb.param0[6],6),round(yb.param0[8],6),
-                    round(yb.param0[4],4)))
-        print(paste(uno.str,"zinv dz tinv aA aB bA bB ga gb:",
-           round(yb.param1[1],1), round(yb.param1[2],0), round(yb.param1[3],1),
-           round(yb.param1[6],6), round(yb.param1[7],6), round(yb.param1[8],6),
-           round(yb.param1[9],6), round(yb.param1[4],4), round(yb.param1[5],4)))
-        print(paste(due.str,"h0 h1-h0 t0 a aA aB bA bB gamma:",
-           round(yb.param2[1],1), round(yb.param2[2],0), round(yb.param2[3],1),
-           round(yb.param2[5],6), round(yb.param2[6],6), round(yb.param2[7],6),
-           round(yb.param2[8],6), round(yb.param2[9],6), round(yb.param2[4],4)))
+        if (argv$verbose) {
+          zero.str<-"0."
+          uno.str<-"1."
+          due.str<-"2."
+          if (best==0) zero.str<-"*0."
+          if (best==1) uno.str<-"*1."
+          if (best==2) due.str<-"*2."
+          print(paste("@@",isct,
+                      ". id pos Zmn/x (Zrange) [Z.q90-Z.q10] ",
+                      "DisthMAX / J0 J1 J2 / #stn:",VecS[b],b,
+                      round(min(VecZ.b),0),round(max(VecZ.b),0),
+                      paste("(",z.range,")",sep=""),
+                      paste("[",z.range.90,"]",sep=""),
+                      round(Disth[b,close2b[Lsubsample.vec[b]]],0),"/",
+                      round(J0,0),round(J1,0),round(J2,0),"/",Lsubsample.vec[b]))
+          print(paste(zero.str,"alpha beta gamma:",
+                      round(yb.param0[6],6),round(yb.param0[8],6),
+                      round(yb.param0[4],4)))
+          print(paste(uno.str,"zinv dz tinv aA aB bA bB ga gb:",
+             round(yb.param1[1],1), round(yb.param1[2],0), round(yb.param1[3],1),
+             round(yb.param1[6],6), round(yb.param1[7],6), round(yb.param1[8],6),
+             round(yb.param1[9],6), round(yb.param1[4],4), round(yb.param1[5],4)))
+          print(paste(due.str,"h0 h1-h0 t0 a aA aB bA bB gamma:",
+             round(yb.param2[1],1), round(yb.param2[2],0), round(yb.param2[3],1),
+             round(yb.param2[5],6), round(yb.param2[6],6), round(yb.param2[7],6),
+             round(yb.param2[8],6), round(yb.param2[9],6), round(yb.param2[4],4)))
+        }
         # DEBUG stop
         # update weights
         # G1 is LOBStOK x Lsubsample matrix to interpolate the Lsubsample values
@@ -868,12 +874,13 @@ while (safe.cont<safe.limit) {
   LOBStOK<-length(yo.OKh.pos)
 # DQC flag "1" means erroneous observation
 ##      OBS$DQC[indx[aux]]<-1
-  print(paste("SCT found GE-> id yo yb ya yav ydqc",VecS[aux],
-              round(yo[aux],1),
-              round(yb[aux],2),
-              round(ya[aux],2),
-              round(yav[aux],2),
-              round(ydqc[aux],2),"\n"))
+  if (argv$verbose) 
+    print(paste("SCT found GE-> id yo yb ya yav ydqc",VecS[aux],
+                round(yo[aux],1),
+                round(yb[aux],2),
+                round(ya[aux],2),
+                round(yav[aux],2),
+                round(ydqc[aux],2),"\n"))
 # write output file
 } # End of Station Analysis cycle (with SCT!)
 if (argv$verbose)
@@ -892,7 +899,7 @@ xb.tmp[]<-0
 xidi.tmp[]<-0
 xidi.norm[]<-0
 b.aux<-0
-if (argv$verbose) print("++ Grid - Background elaborations\n")
+if (argv$verbose) print("++ Grid - Background elaborations")
 for (b in yb.h.pos) {
   b.aux<-b.aux+1
   D.b<-exp(-0.5*(Disth[VecS.set.pos[b,1:Lsubsample.vec[b]],
