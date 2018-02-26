@@ -1,0 +1,41 @@
+#+
+`OI_T_xb_fast`<-function(b.param,
+                         xgrid.sel,
+                         ygrid.sel,
+                         zgrid.sel,
+                         VecX.sel,
+                         VecY.sel,
+                         VecZ.sel,
+                         Dh.cur,
+                         Dz.cur) {
+#------------------------------------------------------------------------------
+  no<-length(VecX.sel)
+  ng<-length(xgrid.sel)
+  vec1<-vector(mode="numeric",length=no)
+  xb.sel<-vector(mode="numeric",length=ng)
+  xidi.sel<-vector(mode="numeric",length=ng)
+  xb.sel[]<-0
+  xidi.sel[]<-0
+  vec1[]<-rowSums(InvD.b)
+  na1<-(-9999.)
+  b.param[which(is.na(b.param))]<-na1
+  out<-.C("oi_xb_fast",ng=as.integer(ng),
+                       no=as.integer(no),
+                       xg=as.double(xgrid.sel),
+                       yg=as.double(ygrid.sel),
+                       zg=as.double(zgrid.sel),
+                       xo=as.double(VecX.sel),
+                       yo=as.double(VecY.sel),
+                       zo=as.double(VecZ.sel),
+                       Dh=as.double(Dh.cur),
+                       Dz=as.double(Dz.cur),
+                       vec1=as.double(vec1),
+                       bparam=as.double(b.param),
+                       xb=as.double(xb.sel),
+                       xidi=as.double(xidi.sel) )
+  xb.sel[1:ng]<-out$xb[1:ng]
+  xidi.sel[1:ng]<-out$xidi[1:ng]
+  rm(out)
+  return(list(xb=xb.sel,xidi=xidi.sel))
+}
+
