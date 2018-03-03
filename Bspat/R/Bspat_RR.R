@@ -24,7 +24,8 @@ suppressPackageStartupMessages(library("igraph"))
 suppressPackageStartupMessages(library("tripack"))
 suppressPackageStartupMessages(library("cluster"))
 suppressPackageStartupMessages(library("ncdf4"))
-options(warn = 2, scipen = 999)
+#options(warn = 2, scipen = 999)
+options(scipen = 999)
 # 
 # -----------------------------------------------------------------------------
 # Constants
