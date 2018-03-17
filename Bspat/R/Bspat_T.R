@@ -163,24 +163,24 @@ argv <- parse_args(p)
 #------------------------------------------------------------------------------
 # set variable dependent netcdf fields 
 if (argv$var=="TG") {
-  varname<-c("tg")
+  varname<-c("TG")
   varlongname<-c("daily average air temperature (from 06 UTC prev day to 06 UTC day)")
   varstandardname<-c("air temperature")
-  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily mean temperature dataset (variable TG). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
+  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily mean temperature dataset (variable TG). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
   title<-"NGCD_TG"
 } else if (argv$var=="TX") {
-  varname<-c("tx")
+  varname<-c("TX")
   varunit<-c("Celsius degree")
-  varlongname<-c("daily max air temperature (from 06 UTC prev day to 06 UTC day)")
+  varlongname<-c("daily max air temperature (from 18 UTC prev day to 18 UTC day)")
   varstandardname<-c("air temperature")
-  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily maximum temperature dataset (variable TX). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
+  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily maximum temperature dataset (variable TX). The aggregation time interval ranges from 1800 UTC previous day to 1800 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
   title<-"NGCD_TX"
 } else if (argv$var=="TN") {
-  varname<-c("tn")
+  varname<-c("TN")
   varunit<-c("Celsius degree")
-  varlongname<-c("daily min air temperature (from 06 UTC prev day to 06 UTC day)")
+  varlongname<-c("daily min air temperature (from 18 UTC prev day to 18 UTC day)")
   varstandardname<-c("air temperature")
-  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily minimum temperature dataset (variable TN). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
+  summary<-c("Nordic Gridded Climate Dataset (NGCD) daily minimum temperature dataset (variable TN). The aggregation time interval ranges from 1800 UTC previous day to 1800 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
   title<-"NGCD_TN"
 } else {
   ext<-error_exit("Fatal Error: variable must be TG or TX or TN")

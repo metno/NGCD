@@ -37,14 +37,14 @@ proj4.utm33<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +to
 n.sector<-16
 sector.angle<-360/n.sector
 # netcdf fixed parameters
-varname<-c("rr")
+varname<-c("RR")
 varunit<-c("mm")
 varlongname<-c("daily total precipitation (from 06 UTC prev day to 06 UTC day)")
 varstandardname<-c("daily total precipitation")
 varversion<-c("1.0")
 reference<-c("Lussana, C., Saloranta, T., Skaugen, T., Magnusson, J., Tveito, O. E., and Andersen, J.: seNorge2 daily precipitation, an observational gridded dataset over Norway from 1957 to the present day, Earth Syst. Sci. Data, 10, 235-249, https://doi.org/10.5194/essd-10-235-2018, 2018.")
 diground<-1
-summary<-c("Nordic Gridded Climate Dataset (NGCD) daily precipitation dataset (variable RR). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
+summary<-c("Nordic Gridded Climate Dataset (NGCD) daily precipitation dataset (variable RR). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
 sourcestring<-"MET Norway"
 title<-"NGCD_RR"
 comment<-"Our open data are licensed under Norwegian Licence for Open Government Data (NLOD) or a Creative Commons Attribution 4.0 International License at your preference. Credit should be given to The Norwegian Meteorological institute, shortened “MET Norway”, as the source of data."
