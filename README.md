@@ -41,7 +41,10 @@ External Fortran libraries:
 
 Copyright and license
 ---------------------
-Copyright (C) 2018 MET Norway. NGCD software is licensed under [GPLversion 2](https://github.com/metno/NGCD/blob/master/LICENSE) or (at your option) any later version.
+Copyright (C) 2018 MET Norway.
+NGCD software is licensed under [GPLversion 2](https://github.com/metno/NGCD/blob/master/LICENSE) or (at your option) any later version.
+The NGCD dataset is available through [NGCD data access](http://surfobs.climate.copernicus.eu/dataaccess/access_ngcd.php) and it is licensed under [NLODversion 1](https://data.norge.no/nlod/en/1.0).
+
 
 External libraries such as GSLIB and Geompack might have different licences.
 
