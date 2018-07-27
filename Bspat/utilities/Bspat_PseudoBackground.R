@@ -138,18 +138,6 @@ XZinv<-function(b_x,b_z,b_yo,dz) {
       resmin<-res
     }
   }
-#  postscript(file="caccola.ps")
-#  plot(b_yb,b_z,col="gray",xlim=c(min(c(b_yb,b_yo)),max(c(b_yb,b_yo))),ylim=c(0,3500))
-#  points(b_yo,b_z,col="red")
-#  abline(v=(-16))
-#  par(new=T)
-#  plot(resvec,resvecz,xlim=c(0,10000000),type="l",ylim=c(0,3500),axes=F)
-#  axis(3)
-#  dev.off()
-#  print(paste(" ZINV = ",zinv,sep=""))
-#  print("z x yo yb")
-#  ii<-order(b_z)
-#  print(matrix(cbind(b_z[ii],b_x[ii],b_yo[ii],b_yb[ii]),nrow=aux_length,ncol=4,byrow=FALSE))
   if (resmin<res_noinv) {
     param[1]<-zinv
     param[2]<-avx

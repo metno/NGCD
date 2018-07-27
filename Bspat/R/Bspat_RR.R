@@ -38,13 +38,13 @@ n.sector<-16
 sector.angle<-360/n.sector
 # netcdf fixed parameters
 varname<-c("RR")
-varunit<-c("mm")
-varlongname<-c("daily total precipitation (from 06 UTC prev day to 06 UTC day)")
-varstandardname<-c("daily total precipitation")
+varunit<-c("kg/m^2")
+varlongname<-c("daily total precipitation amount")
+varstandardname<-c("precipitation_amount")
 varversion<-c("1.0")
 reference<-c("Lussana, C., Saloranta, T., Skaugen, T., Magnusson, J., Tveito, O. E., and Andersen, J.: seNorge2 daily precipitation, an observational gridded dataset over Norway from 1957 to the present day, Earth Syst. Sci. Data, 10, 235-249, https://doi.org/10.5194/essd-10-235-2018, 2018.")
 diground<-1
-summary<-c("Nordic Gridded Climate Dataset (NGCD) daily precipitation dataset (variable RR). The aggregation time interval ranges from 0600 UTC previous day to 0600 UTC day reported as timestamp. NGCD is an observational gridded dataset and the input data comes from the Norwegian Meteorological Institute Climate Database and the European Climate Assessment & Dataset (www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.") 
+summary<-c("This is the variable RR (daily total precipitation amount) of the Nordic Gridded Climate Dataset (NGCD). The dataset type is 2. NGCD is an observational gridded dataset covering Finland, Norway and Sweden. The data sources are: (i) the Norwegian Meteorological Institute Climate Database and (ii) the European Climate Assessment & Dataset (https://www.ecad.eu). For more information on the datasets see https://github.com/metno/CASE. NGCD is based on the software https://github.com/metno/NGCD.")
 sourcestring<-"MET Norway"
 title<-"NGCD_RR"
 comment<-"Our open data are licensed under Norwegian Licence for Open Government Data (NLOD) or a Creative Commons Attribution 4.0 International License at your preference. Credit should be given to The Norwegian Meteorological institute, shortened “MET Norway”, as the source of data."
@@ -185,6 +185,10 @@ p <- add_argument(p, "--errobs.file",
                   help="file with erroneous observations",
                   type="character",
                   default="none")
+p <- add_argument(p, "--cv.file",
+                  help="file with the list of source IDs to be used for cross-validation",
+                  type="character",
+                  default="none")
 #
 p <- add_argument(p, "--eps2",
                   help="ratio of observation to background error covariance",
@@ -270,6 +274,7 @@ if ( !(file.exists(argv$main.path))        |
      !(file.exists(argv$case.path))        | 
      !(file.exists(argv$geoinfo.path)) ) 
   ext<-error_exit("path not found")
+#
 # geographical information
 filenamedem<-file.path(argv$geoinfo.path,"fennodem_NGCD.nc")
 if (!file.exists(filenamedem)) 
@@ -277,12 +282,14 @@ if (!file.exists(filenamedem))
 filenamemask<-file.path(argv$geoinfo.path,"fennomask_NGCD.nc")
 if (!file.exists(filenamemask)) 
   ext<-error_exit(paste("File not found:",filenamemask))
+#
 # load functions
 path2utl.com<-paste(argv$main.path,"/Bspat/utilities",sep="")
 source(paste(path2utl.com,"/RR_dqc_isolatedDry.R",sep=""))
 source(paste(path2utl.com,"/RR_dqc_isolatedWet.R",sep=""))
 source(paste(path2utl.com,"/nc4out.R",sep=""))
 source(paste(path2utl.com,"/OI_RR_fast.R",sep=""))
+#
 # load external C functions
 dyn.load(paste(argv$so.path,"/oi_rr_first.so",sep=""))
 dyn.load(paste(argv$so.path,"/oi_rr_fast.so",sep=""))
@@ -300,11 +307,18 @@ yyyymm<-paste(yyyy,
               formatC(mm,width=2,flag="0"),sep="")
 yyyymmdd0600<-paste(yyyymmdd,"0600",sep="")
 #
+# set cv flag
+cv<-ifelse( (file.exists(argv$cv.file) & argv$cv.file!="none"),
+            TRUE, FALSE )
+#
 # set output
-dir.create(file.path(argv$main.path.output,"NGCD"), showWarnings = FALSE)
-path2output.main<-file.path(argv$main.path.output,"NGCD","RR")
-path2output.main.stn<-file.path(path2output.main,"station_dataset",yyyymm)
-path2output.main.grd<-file.path(path2output.main,"gridded_dataset",yyyymm)
+dset<-ifelse(cv,"NGCDxval","NGCD")
+dir.create(file.path(argv$main.path.output,dset), showWarnings = FALSE)
+path2output.main<-file.path(argv$main.path.output, dset, "RR")
+path2output.main.stn<-file.path(path2output.main, "station_dataset", 
+                                yyyy, formatC(mm,width=2,flag="0"))
+path2output.main.grd<-file.path(path2output.main, "gridded_dataset",
+                                yyyy, formatC(mm,width=2,flag="0"))
 if (!(file.exists(path2output.main)))     
   dir.create(path2output.main,recursive=T,showWarnings=F) 
 if (!(file.exists(path2output.main.stn))) 
@@ -313,16 +327,25 @@ if (!(file.exists(path2output.main.grd)))
   dir.create(path2output.main.grd,recursive=T,showWarnings=F) 
 # output files 
 out.file.stn<-file.path(path2output.main.stn,
-                 paste("NGCD_RR_station_",yyyymmdd,".txt",sep=""))
+                 paste0(dset,"_RR_station_",yyyymmdd,".txt"))
 out.file.ver<-file.path(path2output.main.stn,
-                 paste("NGCD_RR_verif_",yyyymmdd,".txt",sep=""))
+                 paste0(dset,"_RR_verif_",yyyymmdd,".txt"))
 out.file.grd<-file.path(path2output.main.grd,
-                 paste("NGCD_RR_grid_",yyyymmdd,".nc",sep=""))
+                 paste0(dset,"_RR_grid_",yyyymmdd,".nc"))
+if (argv$verbose) {
+  print("+-- Output files --~----~---------------------+")
+  print(paste("out.file.stn",out.file.stn))
+  print(paste("out.file.ver",out.file.ver))
+  print(paste("out.file.grd",out.file.grd))
+}
+#
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # [] Grid
 # CRS Coordinate Reference System
 rtmp1<-raster(filenamedem)
 rtmp2<-raster(filenamemask)
+crs(rtmp1)<-proj4.ETRS_LAEA
+crs(rtmp2)<-proj4.ETRS_LAEA
 r.orog.FG<-mask(rtmp1,mask=rtmp2)
 rm(rtmp1,rtmp2)
 nx.FG<-ncol(r.orog.FG)
@@ -394,20 +417,39 @@ ffin<-file.path(argv$case.path,
 if (!file.exists(ffin))
   ext<-error_exit(paste("File not found:",ffin))
 data<-read.table(file=ffin,header=T,sep=";",
-                         stringsAsFactors=F,strip.white=T)
-n.tmp<-length(data$staid)
+                 stringsAsFactors=F,strip.white=T)
+n.tmp<-length(data$souid)
 # select observations to use
 aux1<-extract(r.orog.CG,
       cbind(data$etrs_laea_x,data$etrs_laea_y),na.rm=T)
 aux2<-extract(r.orog.FG,
       cbind(data$etrs_laea_x,data$etrs_laea_y),na.rm=T)
+aux3<-aux2
+aux3[]<-T
+if (cv) {
+  data4cv<-read.table(file=argv$cv.file,header=T,sep=";",
+                      stringsAsFactors=F,strip.white=T)
+  VecX4cv<-data4cv$etrs_laea_x
+  VecY4cv<-data4cv$etrs_laea_y
+  VecLat4cv<-data4cv$lat
+  VecLon4cv<-data4cv$lon
+  VecZ4cv<-data4cv$z
+  VecS4cv<-data4cv$souid
+  yo4cv<-VecS4cv
+  yo4cv[]<-NA
+  match<-match(data4cv$souid,data$souid)
+  yo4cv[which(!is.na(match))]<-data$value[match[which(!is.na(match))]]
+  rm(match)
+  aux3<-!(data$souid %in% VecS4cv)
+}
 stn.output<-which(!is.na(aux1) & 
                   !is.na(aux2) &
+                  aux3 &
                   !is.na(data$value) &
                   data$dqc %in% c(0) &
                   data$qcode %in% c(0,1,2))
 n.stn.output<-length(stn.output)
-rm(aux1,aux2)
+rm(aux1,aux2,aux3)
 # definitive station list
 L.y.tot<-length(stn.output)
 VecX<-data$etrs_laea_x[stn.output]
@@ -415,7 +457,7 @@ VecY<-data$etrs_laea_y[stn.output]
 VecLat<-data$lat[stn.output]
 VecLon<-data$lon[stn.output]
 VecZ<-data$elev[stn.output]
-VecS<-data$staid[stn.output]
+VecS<-data$souid[stn.output]
 yo<-data$value[stn.output]
 ydqc.flag<-rep(0,length=L.y.tot)
 rm(data)
@@ -429,6 +471,13 @@ Disth<-(outer(VecY,VecY,FUN="-")**2.+
 if (argv$verbose) {
   print("+----------------------------+")
   print(paste("# observations =",L.y.tot))
+  if (cv) {
+    print("cross-validation mode ON")
+    print("cross-validation source IDs:")
+    print(VecS4cv)
+  } else {
+    print("cross-validation mode OFF")
+  }
 }
 #
 #------------------------------------------------------------------------------
@@ -665,7 +714,22 @@ for (l in 1:nl) {
   ra[mask.l]<-xa.l
 }
 rm(r,xb,yb,xa.l,mask.l)
-ya<-extract(ra,cbind(VecX,VecY),method="bilinear")
+if (cv) {
+  ya<-extract(ra,cbind(VecX4cv,VecY4cv),method="bilinear")
+  ix<-which(!is.na(ya) & !is.na(yo4cv))
+  VecS<-VecS4cv[ix]
+  VecX<-VecX4cv[ix]
+  VecY<-VecY4cv[ix]
+  VecLat<-VecLat4cv[ix]
+  VecLon<-VecLon4cv[ix]
+  VecZ<-VecZ4cv[ix]
+  yo<-yo4cv[ix]
+  ydqc.flag<-yo
+  ydqc.flag[]<-0
+} else {
+  ya<-extract(ra,cbind(VecX,VecY),method="bilinear")
+}
+#
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 if (argv$verbose) print("++ Output")
 # Station Points
