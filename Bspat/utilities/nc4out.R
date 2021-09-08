@@ -529,7 +529,7 @@ function(str,t.unit,format="%Y%m%d%H%M",
     atts.var1<-c(atts.var,
                  list(list("long_name", var.longname[v], "text"),
                       list("standard_name", var.standardname[v], "text"),
-                      list("_FillValue", var.mv, "single"),
+#                      list("_FillValue", var.mv, "single"),
                       list("version", var.version, "text"),
                       list("prod_date", as.character(prod.date), "text")))
     if (length(atts.var.add)>=v) {
